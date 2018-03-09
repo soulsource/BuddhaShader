@@ -9,7 +9,7 @@ layout(std430, binding=2) buffer renderedData
 
 uniform uint iterationCount;
 
-uniform uint orbitLength;
+uniform uvec3 orbitLength;
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
@@ -155,7 +155,9 @@ vec2 getStartValue(uint seed)
 bool isGoingToBeDrawn(vec2 offset)
 {
     vec2 val = vec2(0);
-    for(int i = 0; i < orbitLength;++i)
+    uint limit = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
+    limit = limit > orbitLength.z ? limit : orbitLength.z;
+    for(uint i = 0; i < limit;++i)
     {
         val = compSqr(val) + offset;
         if(dot(val,val) > 4.0)
@@ -169,7 +171,9 @@ bool isGoingToBeDrawn(vec2 offset)
 void drawOrbit(vec2 offset)
 {
     vec2 val = vec2(0);
-    for(int i = 0; i < orbitLength;++i)
+    uint limit = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
+    limit = limit > orbitLength.z ? limit : orbitLength.z;
+    for(uint i = 0; i < limit;++i)
     {
         val = compSqr(val) + offset;
         if(dot(val,val) > 20.0)
@@ -177,7 +181,9 @@ void drawOrbit(vec2 offset)
             return;
         }
         if(val.x > -2.5 && val.x < 1.0 && val.y > -1.0 && val.y < 1.0)
-            addToColorAt(val,uvec3(1,1,1));
+        {
+            addToColorAt(val,uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
+        }
     }
 }
 
