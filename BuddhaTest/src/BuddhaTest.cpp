@@ -11,9 +11,10 @@ void error_callback(int error, const char* description)
 
 int main()
 {
-    unsigned int bufferWidth = 640;
-    unsigned int bufferHeight = 480;
+    unsigned int bufferWidth = 1600;
+    unsigned int bufferHeight = 900;
 
+    unsigned int orbitLength = 1000;
 
 	GLFWwindow* window;
 
@@ -28,7 +29,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	/* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Buddhabrot", NULL, NULL);
+    window = glfwCreateWindow(1600, 900, "Buddhabrot", NULL, NULL);
 	if (!window)
 	{
 		std::cerr << "Failed to create OpenGL 4.3 core context. We do not support compatibility contexts." << std::endl;
@@ -79,6 +80,8 @@ int main()
     uint32_t iterationCount{0};
     glUseProgram(ComputeShader);
     GLint iterationCountUniformHandle = glGetUniformLocation(ComputeShader, "iterationCount");
+    GLint orbitLengthUniformHandle = glGetUniformLocation(ComputeShader, "orbitLength");
+    glUniform1ui(orbitLengthUniformHandle,orbitLength);
 
     glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
@@ -89,7 +92,7 @@ int main()
 		glUseProgram(ComputeShader);
         //increase iterationCount, which is used for pseudo random generation
         glUniform1ui(iterationCountUniformHandle,++iterationCount);
-		glDispatchCompute(1920, 1080, 1);
+        glDispatchCompute(128, 1, 1);
 
         //before reading the values in the ssbo, we need a memory barrier:
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); //I hope this is the correct (and only required) bit
