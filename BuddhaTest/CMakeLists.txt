@@ -10,6 +10,8 @@ configure_file("Shaders/BuddhaCompute.glsl" ${CMAKE_CURRENT_BINARY_DIR}/Shaders/
 configure_file("Shaders/BuddhaVertex.glsl" ${CMAKE_CURRENT_BINARY_DIR}/Shaders/BuddhaVertex.glsl)
 
 find_package(OpenGL REQUIRED)
-target_include_directories(BuddhaTest PRIVATE "include" ${OPENGL_INCLUDE_DIR})
-target_link_libraries(BuddhaTest glfw ${OPENGL_gl_LIBRARY})
+find_package(PNG REQUIRED)
+target_include_directories(BuddhaTest PRIVATE "include" ${OPENGL_INCLUDE_DIR} ${PNG_INCLUDE_DIRS})
+target_link_libraries(BuddhaTest glfw ${OPENGL_gl_LIBRARY} ${PNG_LIBRARIES})
+add_definitions(${PNG_DEFINITIONS})
 # on Linux we need to link against libdl. Maybe add id here?

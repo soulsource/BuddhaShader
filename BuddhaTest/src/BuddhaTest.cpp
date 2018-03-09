@@ -14,8 +14,8 @@ int main()
     unsigned int bufferWidth = 1600;
     unsigned int bufferHeight = 900;
 
-    unsigned int orbitLengthRed = 100;
-    unsigned int orbitLengthGreen = 10;
+    unsigned int orbitLengthRed = 10;
+    unsigned int orbitLengthGreen = 100;
     unsigned int orbitLengthBlue = 1000;
 
 	GLFWwindow* window;
@@ -123,6 +123,15 @@ int main()
 		/* Poll for and process events */
 		glfwPollEvents();
 	}
+
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
+    {
+        const unsigned int pixelCount{(bufferWidth * bufferHeight)*3}; //*3 -> RGB
+        std::vector<uint32_t> readBackBuffer(pixelCount);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,4*2,4 * pixelCount,readBackBuffer.data()); //offset of 2*4, that's the dimension integers.
+        Helpers::WriteOutputPNG(readBackBuffer,bufferWidth,bufferHeight);
+    }
 
 	glfwTerminate();
 	return 0;
