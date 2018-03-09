@@ -166,6 +166,14 @@ namespace Helpers
             unsigned int col = i - 3*row*width;
             row_pointers[row][col] = (255*data[i] + (maxValue/2))/maxValue;
         }
+        for(int i = 0; i < height/2;++i)
+        {
+            for(int j = 0; j < width;++j)
+            {
+                png_byte average = (row_pointers[i][j] + row_pointers[height-i-1][j])/2;
+                row_pointers[i][j] = row_pointers[height-i-1][j] = average;
+            }
+        }
 
         //beware, this is going to be ugly C syntax, but well, libpng...
         FILE * fp = fopen("image.png", "wb");
