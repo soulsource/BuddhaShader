@@ -14,7 +14,7 @@ layout(std430, binding=2) buffer renderedData
 uvec3 getColorAt(vec2 fragCoord)
 {
     uint xIndex = uint(max(0.0,(fragCoord.x+1.0)*0.5*width));
-    uint yIndex = uint(max(0.0,(fragCoord.y+1.0)*0.5*height));
+    uint yIndex = uint(max(0.0,abs(fragCoord.y)*height));
     uint firstIndex = 3*(xIndex + yIndex * width);
     return uvec3(counts_SSBO[firstIndex],counts_SSBO[firstIndex+1],counts_SSBO[firstIndex+2]);
 }

@@ -12,7 +12,7 @@ void error_callback(int error, const char* description)
 int main()
 {
     unsigned int bufferWidth = 1600;
-    unsigned int bufferHeight = 900;
+    unsigned int bufferHeight = 450;
 
     unsigned int windowWidth = 1600;
     unsigned int windowHeight = 900;

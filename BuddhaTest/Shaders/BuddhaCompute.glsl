@@ -23,7 +23,7 @@ void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 
 uvec2 getCell(vec2 complex)
 {
-    vec2 uv = clamp(vec2((complex.x+2.5)/3.5, 0.5*(complex.y + 1.0)),vec2(0.0),vec2(1.0));
+    vec2 uv = clamp(vec2((complex.x+2.5)/3.5, (abs(complex.y))),vec2(0.0),vec2(1.0));
     return uvec2(width * uv.x, height * uv.y);
 }
 

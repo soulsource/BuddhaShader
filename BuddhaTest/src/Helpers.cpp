@@ -154,11 +154,11 @@ namespace Helpers
 		return ProgramID;
 	}
 
-    void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int height)
+    void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight)
     {
-        std::vector<png_byte> pngData(3*width*height);
-        std::vector<png_byte *> rows{height};
-        for(int i = 0; i < height ; ++i)
+        std::vector<png_byte> pngData(3*width*2*bufferHeight);
+        std::vector<png_byte *> rows{2*bufferHeight};
+        for(int i = 0; i < 2*bufferHeight ; ++i)
         {
             rows[i] = pngData.data()+3*width*i;
         }
@@ -170,14 +170,13 @@ namespace Helpers
         }
         for(unsigned int i = 0; i < data.size();++i)
         {
-            pngData[i] = (255*data[i] + (maxValue/2))/maxValue;
+            pngData[data.size() + i] = (255*data[i] + (maxValue/2))/maxValue;
         }
-        for(int i = 0; i < height/2;++i)
+        for(int i = 0; i < bufferHeight;++i)
         {
             for(int j = 0; j < width*3;++j)
             {
-                png_byte average = (rows[i][j] + rows[height-i-1][j])/2;
-                rows[i][j] = rows[height-i-1][j] = average;
+                rows[i][j] =rows[2*bufferHeight-i-1][j];
             }
         }
 
@@ -204,7 +203,7 @@ namespace Helpers
             return;
         }
         png_init_io(png_ptr, fd.Get());
-        png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+        png_set_IHDR(png_ptr, info_ptr, width, 2*bufferHeight, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
         png_write_info(png_ptr, info_ptr);
         //header written.
