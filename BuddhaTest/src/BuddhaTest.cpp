@@ -120,8 +120,8 @@ int main()
 	glGenBuffers(1, &drawBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
     {
-        std::vector<uint32_t> initializeBuffer(pixelCount,0);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * pixelCount, initializeBuffer.data(), GL_DYNAMIC_COPY);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * pixelCount, nullptr, GL_DYNAMIC_COPY);
+        glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
     }
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, drawBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
