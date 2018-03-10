@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-project(BuddhaTest)
+project(BuddhaShader)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
