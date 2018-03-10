@@ -174,7 +174,7 @@ namespace Helpers
         }
         for(int i = 0; i < height/2;++i)
         {
-            for(int j = 0; j < width;++j)
+            for(int j = 0; j < width*3;++j)
             {
                 png_byte average = (rows[i][j] + rows[height-i-1][j])/2;
                 rows[i][j] = rows[height-i-1][j] = average;

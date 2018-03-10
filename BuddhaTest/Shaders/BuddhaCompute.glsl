@@ -147,7 +147,7 @@ vec2 getStartValue(uint seed)
     for(int i = 0; i < 5; ++i)
     {
         vec2 random = hash2(hash,hash);
-        vec2 point = vec2(random.x * 3.5-2.5,random.y*3.1-1.55);
+        vec2 point = vec2(random.x * 3.5-2.5,random.y*1.55);
         float useThisPoint =1.0-(isInMainBulb(point) + isInMainCardioid(point));
         retval = mix(retval,point,useThisPoint);
     }

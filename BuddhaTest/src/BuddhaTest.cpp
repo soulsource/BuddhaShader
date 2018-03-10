@@ -21,6 +21,14 @@ int main()
     unsigned int orbitLengthGreen = 100;
     unsigned int orbitLengthBlue = 1000;
 
+    unsigned int localWorkgroupSizeX = 1024;
+    unsigned int localWorkgroupSizeY = 1;
+    unsigned int localWorkgroupSizeZ = 1;
+
+    unsigned int globalWorkGroupSizeX = 1024;
+    unsigned int globalWorkGroupSizeY = 1;
+    unsigned int globalWorkGroupSizeZ = 1;
+
 	GLFWwindow* window;
 
 	/* Initialize the library */
@@ -80,7 +88,7 @@ int main()
 	// Create and compile our GLSL program from the shaders
 	GLuint VertexAndFragmentShaders = Helpers::LoadShaders("Shaders/BuddhaVertex.glsl", "Shaders/BuddhaFragment.glsl");
 	//Do the same for the compute shader:
-    GLuint ComputeShader = Helpers::LoadComputeShader("Shaders/BuddhaCompute.glsl", 1024, 1, 1);
+    GLuint ComputeShader = Helpers::LoadComputeShader("Shaders/BuddhaCompute.glsl", localWorkgroupSizeX, localWorkgroupSizeY, localWorkgroupSizeZ);
 
     uint32_t iterationCount{0};
     glUseProgram(ComputeShader);
@@ -97,7 +105,7 @@ int main()
 		glUseProgram(ComputeShader);
         //increase iterationCount, which is used for pseudo random generation
         glUniform1ui(iterationCountUniformHandle,++iterationCount);
-        glDispatchCompute(1024, 1, 1);
+        glDispatchCompute(globalWorkGroupSizeX, globalWorkGroupSizeY, globalWorkGroupSizeZ);
 
         //before reading the values in the ssbo, we need a memory barrier:
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); //I hope this is the correct (and only required) bit
