@@ -6,6 +6,8 @@
 #include <vector>
 #include <png.h>
 #include <cmath>
+#include <unordered_map>
+#include <string>
 
 namespace Helpers
 {
@@ -155,7 +157,7 @@ namespace Helpers
 		return ProgramID;
 	}
 
-    void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight, double gamma, double colorScale)
+    void WriteOutputPNG(const std::string &path, const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight, double gamma, double colorScale)
     {
         std::vector<png_byte> pngData(3*width*2*bufferHeight);
         std::vector<png_byte *> rows{2*bufferHeight};
@@ -188,7 +190,7 @@ namespace Helpers
             }
         }
 
-        ScopedCFileDescriptor fd("image.png", "wb");
+        ScopedCFileDescriptor fd(path.c_str(), "wb");
         if(!fd.IsValid())
         {
             std::cout << "Failed to open image.png for writing." << std::endl;
@@ -241,6 +243,154 @@ namespace Helpers
     bool ScopedCFileDescriptor::IsValid() const
     {
         return Descriptor != nullptr;
+    }
+
+    bool RenderSettings::CheckValidity()
+    {
+        if(imageHeight%2 != 0)
+        {
+            std::cout << "Image height has to be an even number." << std::endl;
+            return false;
+        }
+        const unsigned int bufferHeight = imageHeight/2;
+        const unsigned int pixelCount{(imageWidth * imageHeight/2)*3}; //*3 -> RGB
+        int maxSSBOSize;
+        glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
+        if(pixelCount * 4 > maxSSBOSize)
+        {
+            std::cout << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/12 << std::endl;
+            return false;
+        }
+        int WorkGroupSizeLimitX, WorkGroupSizeLimitY, WorkGroupSizeLimitZ;
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,0,&WorkGroupSizeLimitX);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,1,&WorkGroupSizeLimitY);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,2,&WorkGroupSizeLimitZ);
+        if(globalWorkGroupSizeX > WorkGroupSizeLimitX ||
+                globalWorkGroupSizeY > WorkGroupSizeLimitY ||
+                globalWorkGroupSizeZ > WorkGroupSizeLimitZ)
+        {
+            std::cout << "Requested global work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
+            return false;
+        }
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,0,&WorkGroupSizeLimitX);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,1,&WorkGroupSizeLimitY);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,2,&WorkGroupSizeLimitZ);
+        if(localWorkgroupSizeX > WorkGroupSizeLimitX ||
+                localWorkgroupSizeY > WorkGroupSizeLimitY ||
+                localWorkgroupSizeZ > WorkGroupSizeLimitZ)
+        {
+            std::cout << "Requested local work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
+            return false;
+        }
+        int maxInvocations;
+        glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS,&maxInvocations);
+        if(localWorkgroupSizeX*localWorkgroupSizeY*localWorkgroupSizeZ > maxInvocations)
+        {
+            std::cout << "Requested local work group size exceeds maximum total count (Product of x*y*z dimensions). Limit: " << maxInvocations << std::endl;
+            return false;
+        }
+        return true;
+    }
+
+    bool RenderSettings::ParseCommandLine(int argc, char *argv[])
+    {
+        struct SettingsPointer
+        {
+        public:
+            SettingsPointer(unsigned int * ptr) : intPtr(ptr), dblPtr(nullptr), stringPtr(nullptr) {}
+            SettingsPointer(double * ptr) : intPtr(nullptr), dblPtr(ptr), stringPtr(nullptr) {}
+            SettingsPointer(std::string * ptr) : intPtr(nullptr), dblPtr(nullptr), stringPtr(ptr) {}
+            unsigned int * GetIntPtr() const { return intPtr; }
+            double * GetDblPtr() const { return dblPtr;}
+            std::string * GetStringPtr() const { return stringPtr;}
+        private:
+            unsigned int * intPtr = nullptr;
+            double * dblPtr = nullptr;
+            std::string * stringPtr = nullptr;
+        };
+        std::unordered_map<std::string, SettingsPointer> commandMap{
+            {"--imageWidth",&imageWidth},
+            {"--imageHeight",&imageHeight},
+            {"--windowWidth",&windowWidth},
+            {"--windowHeight",&windowHeight},
+            {"--orbitLengthRed",&orbitLengthRed},
+            {"--orbitLengthGreen",&orbitLengthGreen},
+            {"--orbitLengthBlue",&orbitLengthBlue},
+            {"--localWorkgroupSizeX", &localWorkgroupSizeX},
+            {"--localWorkgroupSizeY", &localWorkgroupSizeY},
+            {"--localWorkgroupSizeZ", &localWorkgroupSizeZ},
+            {"--globalWorkgroupSizeX", &globalWorkGroupSizeX},
+            {"--globalWorkgroupSizeY", &globalWorkGroupSizeY},
+            {"--globalWorkgroupSizeZ", &globalWorkGroupSizeZ},
+            {"--imageGamma",&pngGamma},
+            {"--imageColorScale",&pngColorScale},
+            {"--output", &pngFilename}
+        };
+
+        for(int i=1; i < argc;++i)
+        {
+            std::string argAsString(argv[i]);
+            if(argAsString == "--help") //help is a special case.
+            {
+                std::cout << "Draws a buddhabrot and iterates until the user closes the window. If a --output filename is given, a png file will afterwards be written there." <<std::endl <<
+                             "Supported options are:" << std::endl << std::endl <<
+                             "--output [path] : File to write output to. Empty by default, meaning no output is written." << std::endl <<
+                             "--imageWidth [integer] : Width of the to be written image. 1920 by default. Ignored if no --output is given." << std::endl <<
+                             "--imageHeight [integer] : Height of the to be written image. 1080 by default. Ignored if no --output is given." << std::endl <<
+                             "--imageGamma [float] : Gamma to use when writing the image. 1.0 by default. Ignored if no --output is given." << std::endl <<
+                             "--imageColorScale [float] : Image brightness is scaled by the brightest pixel. The result is multiplied by this value. 2.0 by default, as 1.0 leaves very little dynamic range." << std::endl <<
+                             "--windowWidth [integer] : Width of the preview window. 1024 by default." << std::endl <<
+                             "--windowHeight [integer] : Height of the preview window. 576 by default." << std::endl <<
+                             "--orbitLengthRed [integer] : Maximum number of iterations for escaping orbits to color red. 10 by default." << std::endl <<
+                             "--orbitLengthGreen [integer] : Maximum number of iterations for escaping orbits to color green. 100 by default." << std::endl <<
+                             "--orbitLengthBlue [integer] : Maximum number of iterations for escaping orbits to color blue. 1000 by default." << std::endl <<
+                             "--localWorkgroupSizeX [integer] : How \"parallel\" the computation should be. Maximum possible value depends on GPU and drivers. The default is 1024. Values up to 1024 are guaranteed to work." << std::endl <<
+                             "--localWorkgroupSizeY [integer] : How \"parallel\" the computation should be. Maximum possible value depends on GPU and drivers. The default is 1. Values up to 1024 are guaranteed to work." << std::endl <<
+                             "--localWorkgroupSizeZ [integer] : How \"parallel\" the computation should be. Maximum possible value depends on GPU and drivers. The default of 1. Values up to 1024 are guaranteed to work." << std::endl <<
+                             "\tNOTE: There's also a limit on the product of the three local workgroup sizes, for which a number smaller or equal to 1024 is guaranteed to work. Higher numbers might work and run faster. Feel free to experiment." << std::endl <<
+                             "--globalWorkgroupSizeX [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1024." << std::endl <<
+                             "--globalWorkgroupSizeY [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl <<
+                             "--globalWorkgroupSizeZ [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl;
+                return false;
+            }
+        }
+        //apart from --help all parameters consist of 2 entries.
+        if(argc%2 != 1)
+        {
+            std::cout << "Invalid number of arguments. See --help for usage." << std::endl;
+            return false;
+        }
+        for(int i=1 ; i < argc; i += 2)
+        {
+            std::string argAsString(argv[i]);
+            std::string valueAsString(argv[i+1]);
+            auto setting = commandMap.find(argAsString);
+            if(setting == commandMap.end())
+            {
+                std::cout << "Unknown option: " << argAsString << std::endl;
+                return false;
+            }
+            const SettingsPointer& ptr = setting->second;
+            if(auto intProp = ptr.GetIntPtr())
+            {
+                *intProp = std::stoi(valueAsString);
+            }
+            else if(auto dblProp = ptr.GetDblPtr())
+            {
+                *dblProp = std::stod(valueAsString);
+            }
+            else if(auto strPtr = ptr.GetStringPtr())
+            {
+                *strPtr = valueAsString;
+            }
+            else
+            {
+                std::cerr << "Something went horribly wrong with command line parsing. This is a bug." << std::endl;
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }
