@@ -6,10 +6,11 @@ out vec3 color;
 
 layout(std430, binding=2) buffer renderedData
 {
-        uint width;
-        uint height;
         uint counts_SSBO[];
 };
+
+uniform uint width;
+uniform uint height;
 
 uvec3 getColorAt(vec2 fragCoord)
 {

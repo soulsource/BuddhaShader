@@ -4,13 +4,13 @@
 
 layout(std430, binding=2) buffer renderedData
 {
-        uint width;
-        uint height;
         uint counts_SSBO[];
 };
 
-uniform uint iterationCount;
+uniform uint width;
+uniform uint height;
 
+uniform uint iterationCount;
 uniform uvec3 orbitLength;
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)

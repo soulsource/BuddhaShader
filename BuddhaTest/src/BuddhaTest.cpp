@@ -11,8 +11,8 @@ void error_callback(int error, const char* description)
 
 int main()
 {
-    unsigned int bufferWidth = 1920;
-    unsigned int bufferHeight = 540;
+    unsigned int bufferWidth = 6304;
+    unsigned int bufferHeight = 1773;
 
     unsigned int windowWidth = 1600;
     unsigned int windowHeight = 900;
@@ -60,13 +60,12 @@ int main()
     //we have a context. Let's check if input is sane.
     //calcualte buffer size, and make sure it's allowed by the driver.
     const unsigned int pixelCount{(bufferWidth * bufferHeight)*3}; //*3 -> RGB
-    const unsigned int integerCount = pixelCount + 2; //first two elements in buffer: width/height.
     {
         int maxSSBOSize;
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
-        if(integerCount * 4 > maxSSBOSize)
+        if(pixelCount * 4 > maxSSBOSize)
         {
-            std::cout << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/12 - 2 << std::endl;
+            std::cout << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/12 << std::endl;
             glfwTerminate();
             return 0;
         }
@@ -121,10 +120,8 @@ int main()
 	glGenBuffers(1, &drawBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
     {
-        std::vector<uint32_t> initializeBuffer(integerCount,0);
-        initializeBuffer[0] = bufferWidth;
-        initializeBuffer[1] = bufferHeight;
-        glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * integerCount, initializeBuffer.data(), GL_DYNAMIC_COPY);
+        std::vector<uint32_t> initializeBuffer(pixelCount,0);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * pixelCount, initializeBuffer.data(), GL_DYNAMIC_COPY);
     }
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, drawBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -138,7 +135,17 @@ int main()
     glUseProgram(ComputeShader);
     GLint iterationCountUniformHandle = glGetUniformLocation(ComputeShader, "iterationCount");
     GLint orbitLengthUniformHandle = glGetUniformLocation(ComputeShader, "orbitLength");
+    GLint widthUniformComputeHandle = glGetUniformLocation(ComputeShader, "width");
+    GLint heightUniformComputeHandle = glGetUniformLocation(ComputeShader, "height");
     glUniform3ui(orbitLengthUniformHandle,orbitLengthRed,orbitLengthGreen,orbitLengthBlue);
+    glUniform1ui(widthUniformComputeHandle, bufferWidth);
+    glUniform1ui(heightUniformComputeHandle,bufferHeight);
+
+    glUseProgram(VertexAndFragmentShaders);
+    GLint widthUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "width");
+    GLint heightUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "height");
+    glUniform1ui(widthUniformFragmentHandle, bufferWidth);
+    glUniform1ui(heightUniformFragmentHandle,bufferHeight);
 
     glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
@@ -183,7 +190,7 @@ int main()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
     {
         std::vector<uint32_t> readBackBuffer(pixelCount);
-        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,4*2,4 * pixelCount,readBackBuffer.data()); //offset of 2*4, that's the dimension integers.
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,0,4 * pixelCount,readBackBuffer.data());
         Helpers::WriteOutputPNG(readBackBuffer,bufferWidth,bufferHeight, pngGamma, pngColorScale);
     }
 
