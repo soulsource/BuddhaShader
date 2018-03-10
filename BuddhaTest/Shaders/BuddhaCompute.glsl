@@ -1,4 +1,6 @@
-#version 430
+//commented out, added by c-code that loads this shader.
+//#version 430
+//layout (local_size_x = 1024) in; //to be safe, we limit our local work group size to 1024. That's the minimum a GL 4.3 capable driver must support.
 
 layout(std430, binding=2) buffer renderedData
 {
@@ -187,7 +189,6 @@ void drawOrbit(vec2 offset)
     }
 }
 
-layout (local_size_x = 1024) in; //to be safe, we limit our local work group size to 1024. That's the minimum a GL 4.3 capable driver must support.
 void main() {
     //we need to know how many total work groups are running this iteration
 

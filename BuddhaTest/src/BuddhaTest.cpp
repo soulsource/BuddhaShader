@@ -14,6 +14,9 @@ int main()
     unsigned int bufferWidth = 1600;
     unsigned int bufferHeight = 900;
 
+    unsigned int windowWidth = 1600;
+    unsigned int windowHeight = 900;
+
     unsigned int orbitLengthRed = 10;
     unsigned int orbitLengthGreen = 100;
     unsigned int orbitLengthBlue = 1000;
@@ -31,7 +34,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	/* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(1600, 900, "Buddhabrot", NULL, NULL);
+    window = glfwCreateWindow(windowWidth, windowHeight, "Buddhabrot", NULL, NULL);
 	if (!window)
 	{
 		std::cerr << "Failed to create OpenGL 4.3 core context. We do not support compatibility contexts." << std::endl;
@@ -77,7 +80,7 @@ int main()
 	// Create and compile our GLSL program from the shaders
 	GLuint VertexAndFragmentShaders = Helpers::LoadShaders("Shaders/BuddhaVertex.glsl", "Shaders/BuddhaFragment.glsl");
 	//Do the same for the compute shader:
-	GLuint ComputeShader = Helpers::LoadComputeShader("Shaders/BuddhaCompute.glsl");
+    GLuint ComputeShader = Helpers::LoadComputeShader("Shaders/BuddhaCompute.glsl", 1024, 1, 1);
 
     uint32_t iterationCount{0};
     glUseProgram(ComputeShader);
@@ -103,7 +106,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glUseProgram(VertexAndFragmentShaders);
 		
-		glEnableVertexAttribArray(0);
+        glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 		glVertexAttribPointer(
 			0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -113,12 +116,12 @@ int main()
 			0,                  // stride
 			(void*)0            // array buffer offset
 		);
-		// Draw the triangle !
+        // Draw the triangle strip!
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // Triangle strip with 4 vertices -> quad.
 		glDisableVertexAttribArray(0);
 
 		/* Swap front and back buffers */
-		glfwSwapBuffers(window);
+        glfwSwapBuffers(window);
 
 		/* Poll for and process events */
 		glfwPollEvents();
@@ -132,6 +135,10 @@ int main()
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,4*2,4 * pixelCount,readBackBuffer.data()); //offset of 2*4, that's the dimension integers.
         Helpers::WriteOutputPNG(readBackBuffer,bufferWidth,bufferHeight);
     }
+
+    //a bit of cleanup
+    glDeleteBuffers(1,&vertexbuffer);
+    glDeleteBuffers(1,&drawBuffer);
 
 	glfwTerminate();
 	return 0;

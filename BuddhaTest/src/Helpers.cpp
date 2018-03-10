@@ -98,7 +98,7 @@ namespace Helpers
 		return ProgramID;
 	}
 
-	GLuint LoadComputeShader(const char* compute_file_path)
+    GLuint LoadComputeShader(const char* compute_file_path, unsigned int localSizeX, unsigned int localSizeY, unsigned int localSizeZ)
 	{
 		GLuint ComputeShaderID = glCreateShader(GL_COMPUTE_SHADER);
 		// Read the compute shader
@@ -107,6 +107,11 @@ namespace Helpers
 			std::ifstream ComputeShaderCodeStream(compute_file_path, std::ios::in);
 			if (ComputeShaderCodeStream.is_open()) {
 				std::stringstream sstr;
+                sstr << "#version 430" <<
+                        std::endl <<
+                        "layout (local_size_x = " << localSizeX <<
+                        ", local_size_y = " << localSizeY <<
+                        ", local_size_z = " << localSizeZ << ") in;" << std::endl;
 				sstr << ComputeShaderCodeStream.rdbuf();
 				ComputeShaderCode = sstr.str();
 				ComputeShaderCodeStream.close();
@@ -158,7 +163,7 @@ namespace Helpers
             rows[i] = pngData.data()+3*width*i;
         }
 
-        uint32_t maxValue{UINT32_C(0)};
+        uint32_t maxValue{UINT32_C(1)};
         for(unsigned int i = 0; i < data.size();++i)
         {
             maxValue = std::max(maxValue,data[i]);
