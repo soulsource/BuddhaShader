@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #include <vector>
 #include <png.h>
 
@@ -147,6 +148,7 @@ namespace Helpers
 		glDeleteShader(ComputeShaderID);
 		return ProgramID;
 	}
+
     void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int height)
     {
         png_byte ** row_pointers = static_cast<png_byte **>(calloc(height,sizeof(void *)));
@@ -175,32 +177,29 @@ namespace Helpers
             }
         }
 
-        //beware, this is going to be ugly C syntax, but well, libpng...
-        FILE * fp = fopen("image.png", "wb");
-        if(!fp)
+        ScopedCFileDescriptor fd("image.png", "wb");
+        if(!fd.IsValid())
         {
+            std::cout << "Failed to open image.png for writing." << std::endl;
             return;
         }
         png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
         if(!png_ptr)
         {
-            fclose(fp);
             return;
         }
         png_infop info_ptr = png_create_info_struct(png_ptr);
         if(!info_ptr)
         {
             png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
-            fclose(fp);
             return;
         }
         if(setjmp(png_jmpbuf(png_ptr)))
         {
             png_destroy_write_struct(&png_ptr, &info_ptr);
-            fclose(fp);
             return;
         }
-        png_init_io(png_ptr, fp);
+        png_init_io(png_ptr, fd.Get());
         png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
         png_write_info(png_ptr, info_ptr);
@@ -218,4 +217,26 @@ namespace Helpers
 
         free(row_pointers);
     }
+
+    ScopedCFileDescriptor::ScopedCFileDescriptor(const char *path, const char *mode)
+    {
+        Descriptor = fopen(path,mode);
+    }
+
+    ScopedCFileDescriptor::~ScopedCFileDescriptor()
+    {
+        if(IsValid())
+            fclose(Descriptor);
+    }
+
+    FILE * ScopedCFileDescriptor::Get() const
+    {
+        return Descriptor;
+    }
+
+    bool ScopedCFileDescriptor::IsValid() const
+    {
+        return Descriptor != nullptr;
+    }
+
 }
