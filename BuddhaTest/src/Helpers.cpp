@@ -151,10 +151,11 @@ namespace Helpers
 
     void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int height)
     {
-        png_byte ** row_pointers = static_cast<png_byte **>(calloc(height,sizeof(void *)));
+        std::vector<png_byte> pngData(3*width*height);
+        std::vector<png_byte *> rows{height};
         for(int i = 0; i < height ; ++i)
         {
-            row_pointers[i] = static_cast<png_byte *>(calloc(3*width,sizeof(png_byte)));
+            rows[i] = pngData.data()+3*width*i;
         }
 
         uint32_t maxValue{UINT32_C(0)};
@@ -164,16 +165,14 @@ namespace Helpers
         }
         for(unsigned int i = 0; i < data.size();++i)
         {
-            unsigned int row = (i)/(3*width);
-            unsigned int col = i - 3*row*width;
-            row_pointers[row][col] = (255*data[i] + (maxValue/2))/maxValue;
+            pngData[i] = (255*data[i] + (maxValue/2))/maxValue;
         }
         for(int i = 0; i < height/2;++i)
         {
             for(int j = 0; j < width;++j)
             {
-                png_byte average = (row_pointers[i][j] + row_pointers[height-i-1][j])/2;
-                row_pointers[i][j] = row_pointers[height-i-1][j] = average;
+                png_byte average = (rows[i][j] + rows[height-i-1][j])/2;
+                rows[i][j] = rows[height-i-1][j] = average;
             }
         }
 
@@ -205,17 +204,10 @@ namespace Helpers
         png_write_info(png_ptr, info_ptr);
         //header written.
 
-        png_write_image(png_ptr, row_pointers);
+        png_write_image(png_ptr, rows.data());
 
         png_write_end(png_ptr, info_ptr);
         png_destroy_write_struct(&png_ptr, &info_ptr);
-
-        for(int i = 0; i < height ; ++i)
-        {
-            free(row_pointers[i]);
-        }
-
-        free(row_pointers);
     }
 
     ScopedCFileDescriptor::ScopedCFileDescriptor(const char *path, const char *mode)
