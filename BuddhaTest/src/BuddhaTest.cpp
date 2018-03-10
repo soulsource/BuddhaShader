@@ -11,8 +11,8 @@ void error_callback(int error, const char* description)
 
 int main()
 {
-    unsigned int bufferWidth = 1600;
-    unsigned int bufferHeight = 450;
+    unsigned int bufferWidth = 1920;
+    unsigned int bufferHeight = 540;
 
     unsigned int windowWidth = 1600;
     unsigned int windowHeight = 900;
@@ -28,6 +28,8 @@ int main()
     unsigned int globalWorkGroupSizeX = 1024;
     unsigned int globalWorkGroupSizeY = 1;
     unsigned int globalWorkGroupSizeZ = 1;
+
+    double pngGamma = 1.0;
 
 	GLFWwindow* window;
 
@@ -54,6 +56,49 @@ int main()
 	glfwMakeContextCurrent(window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
+    //we have a context. Let's check if input is sane.
+    //calcualte buffer size, and make sure it's allowed by the driver.
+    const unsigned int pixelCount{(bufferWidth * bufferHeight)*3}; //*3 -> RGB
+    const unsigned int integerCount = pixelCount + 2; //first two elements in buffer: width/height.
+    {
+        int maxSSBOSize;
+        glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
+        if(integerCount * 4 > maxSSBOSize)
+        {
+            std::cout << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/12 - 2 << std::endl;
+            glfwTerminate();
+            return 0;
+        }
+        int WorkGroupSizeLimitX, WorkGroupSizeLimitY, WorkGroupSizeLimitZ;
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,0,&WorkGroupSizeLimitX);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,1,&WorkGroupSizeLimitY);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,2,&WorkGroupSizeLimitZ);
+        if(globalWorkGroupSizeX > WorkGroupSizeLimitX || globalWorkGroupSizeY > WorkGroupSizeLimitY || globalWorkGroupSizeZ > WorkGroupSizeLimitZ)
+        {
+            std::cout << "Requested global work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
+            glfwTerminate();
+            return 0;
+        }
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,0,&WorkGroupSizeLimitX);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,1,&WorkGroupSizeLimitY);
+        glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,2,&WorkGroupSizeLimitZ);
+        if(localWorkgroupSizeX > WorkGroupSizeLimitX || localWorkgroupSizeY > WorkGroupSizeLimitY || localWorkgroupSizeZ > WorkGroupSizeLimitZ)
+        {
+            std::cout << "Requested local work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
+            glfwTerminate();
+            return 0;
+        }
+        int maxInvocations;
+        glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS,&maxInvocations);
+        if(localWorkgroupSizeX*localWorkgroupSizeY*localWorkgroupSizeZ > maxInvocations)
+        {
+            std::cout << "Requested local work group size exceeds maximum total count (Product of x*y*z dimensions). Limit: " << maxInvocations << std::endl;
+            glfwTerminate();
+            return 0;
+        }
+    }
+
+
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
@@ -75,8 +120,6 @@ int main()
 	glGenBuffers(1, &drawBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
     {
-        const unsigned int pixelCount{(bufferWidth * bufferHeight)*3}; //*3 -> RGB
-        const unsigned int integerCount = pixelCount + 2; //first two elements in buffer: width/height.
         std::vector<uint32_t> initializeBuffer(integerCount,0);
         initializeBuffer[0] = bufferWidth;
         initializeBuffer[1] = bufferHeight;
@@ -138,10 +181,9 @@ int main()
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
     {
-        const unsigned int pixelCount{(bufferWidth * bufferHeight)*3}; //*3 -> RGB
         std::vector<uint32_t> readBackBuffer(pixelCount);
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,4*2,4 * pixelCount,readBackBuffer.data()); //offset of 2*4, that's the dimension integers.
-        Helpers::WriteOutputPNG(readBackBuffer,bufferWidth,bufferHeight);
+        Helpers::WriteOutputPNG(readBackBuffer,bufferWidth,bufferHeight, pngGamma);
     }
 
     //a bit of cleanup

@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <png.h>
+#include <cmath>
 
 namespace Helpers
 {
@@ -154,7 +155,7 @@ namespace Helpers
 		return ProgramID;
 	}
 
-    void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight)
+    void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight, double gamma)
     {
         std::vector<png_byte> pngData(3*width*2*bufferHeight);
         std::vector<png_byte *> rows{2*bufferHeight};
@@ -170,7 +171,14 @@ namespace Helpers
         }
         for(unsigned int i = 0; i < data.size();++i)
         {
-            pngData[data.size() + i] = (255*data[i] + (maxValue/2))/maxValue;
+            if(fabs(gamma - 1.0) > 0.0001)
+            {
+                pngData[data.size() + i] = 255.0 * pow(static_cast<double>(data[i])/static_cast<double>(maxValue),gamma);
+            }
+            else
+            {
+                pngData[data.size() + i] = (255*data[i] + (maxValue/2))/maxValue;
+            }
         }
         for(int i = 0; i < bufferHeight;++i)
         {
