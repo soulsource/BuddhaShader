@@ -30,6 +30,7 @@ int main()
     unsigned int globalWorkGroupSizeZ = 1;
 
     double pngGamma = 1.0;
+    double pngColorScale = 2.0;
 
 	GLFWwindow* window;
 
@@ -183,7 +184,7 @@ int main()
     {
         std::vector<uint32_t> readBackBuffer(pixelCount);
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,4*2,4 * pixelCount,readBackBuffer.data()); //offset of 2*4, that's the dimension integers.
-        Helpers::WriteOutputPNG(readBackBuffer,bufferWidth,bufferHeight, pngGamma);
+        Helpers::WriteOutputPNG(readBackBuffer,bufferWidth,bufferHeight, pngGamma, pngColorScale);
     }
 
     //a bit of cleanup

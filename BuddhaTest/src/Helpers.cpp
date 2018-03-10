@@ -155,7 +155,7 @@ namespace Helpers
 		return ProgramID;
 	}
 
-    void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight, double gamma)
+    void WriteOutputPNG(const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight, double gamma, double colorScale)
     {
         std::vector<png_byte> pngData(3*width*2*bufferHeight);
         std::vector<png_byte *> rows{2*bufferHeight};
@@ -171,9 +171,9 @@ namespace Helpers
         }
         for(unsigned int i = 0; i < data.size();++i)
         {
-            if(fabs(gamma - 1.0) > 0.0001)
+            if(fabs(gamma - 1.0) > 0.0001 || fabs(colorScale - 1.0) > 0.0001)
             {
-                pngData[data.size() + i] = 255.0 * pow(static_cast<double>(data[i])/static_cast<double>(maxValue),gamma);
+                pngData[data.size() + i] = 255.0 * pow(std::min(1.0,colorScale*static_cast<double>(data[i])/static_cast<double>(maxValue)),gamma);
             }
             else
             {
