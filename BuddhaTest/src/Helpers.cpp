@@ -267,7 +267,7 @@ namespace Helpers
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
         if(pixelCount * 4 > maxSSBOSize)
         {
-            std::cout << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/12 << std::endl;
+            std::cout << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/6 << std::endl;
             return false;
         }
         int WorkGroupSizeLimitX, WorkGroupSizeLimitY, WorkGroupSizeLimitZ;
