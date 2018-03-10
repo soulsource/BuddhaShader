@@ -21,7 +21,7 @@ uvec3 getColorAt(vec2 fragCoord)
 }
 
 void main(){
-    uvec3 totalCount = getColorAt(uv) + getColorAt(vec2(uv.x, -uv.y));
+    uvec3 totalCount = getColorAt(uv);
     uvec3 brightness = getColorAt(vec2(-0.2390625,0));
 
     vec3 scaled = vec3(totalCount)/max(length(vec3(brightness)),1.0);
