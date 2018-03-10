@@ -54,6 +54,33 @@ int main(int argc, char * argv[])
         return 1;
     }
 
+    // Create and compile our GLSL program from the shaders
+    std::string vertexPath("Shaders/BuddhaVertex.glsl");
+    std::string fragmentPath("Shaders/BuddhaFragment.glsl");
+    std::string computePath("Shaders/BuddhaCompute.glsl");
+
+    if(!Helpers::DoesFileExist(vertexPath))
+    {
+#if defined _WIN32 || defined __CYGWIN__
+        std::string separator("\\");
+#else
+        std::string separator("/");
+#endif
+        vertexPath = INSTALL_PREFIX + separator + "share" + separator + "BuddhaShader" + separator + vertexPath;
+        fragmentPath = INSTALL_PREFIX + separator + "share" + separator + "BuddhaShader" + separator + fragmentPath;
+        computePath = INSTALL_PREFIX + separator + "share" + separator + "BuddhaShader" + separator + computePath;
+    }
+
+    GLuint VertexAndFragmentShaders = Helpers::LoadShaders(vertexPath, fragmentPath);
+    //Do the same for the compute shader:
+    GLuint ComputeShader = Helpers::LoadComputeShader(computePath, settings.localWorkgroupSizeX, settings.localWorkgroupSizeY, settings.localWorkgroupSizeZ);
+    if(VertexAndFragmentShaders == 0 || ComputeShader == 0)
+    {
+        std::cout << "Something went wrong with loading the shaders. Abort." << std::endl;
+        glfwTerminate();
+        return 1;
+    }
+
 	GLuint VertexArrayID;
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
@@ -80,11 +107,6 @@ int main(int argc, char * argv[])
     }
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, drawBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Create and compile our GLSL program from the shaders
-	GLuint VertexAndFragmentShaders = Helpers::LoadShaders("Shaders/BuddhaVertex.glsl", "Shaders/BuddhaFragment.glsl");
-	//Do the same for the compute shader:
-    GLuint ComputeShader = Helpers::LoadComputeShader("Shaders/BuddhaCompute.glsl", settings.localWorkgroupSizeX, settings.localWorkgroupSizeY, settings.localWorkgroupSizeZ);
 
     uint32_t iterationCount{0};
     glUseProgram(ComputeShader);

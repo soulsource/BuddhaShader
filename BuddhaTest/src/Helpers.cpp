@@ -11,7 +11,7 @@
 
 namespace Helpers
 {
-	GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path) {
+    GLuint LoadShaders(const std::string& vertex_file_path, const std::string& fragment_file_path) {
 
 		// Create the shaders
 		GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -27,8 +27,7 @@ namespace Helpers
 			VertexShaderStream.close();
 		}
 		else {
-			printf("Impossible to open %s. Are you in the right directory ? Don't forget to read the FAQ !\n", vertex_file_path);
-			getchar();
+            std::cerr << "Failed to load vertex shader file from " << vertex_file_path << ". Is this installed correctly?" << std::endl;
 			return 0;
 		}
 
@@ -41,12 +40,17 @@ namespace Helpers
 			FragmentShaderCode = sstr.str();
 			FragmentShaderStream.close();
 		}
+        else
+        {
+            std::cerr << "Failed to load fragment shader file from " << fragment_file_path << ". Is this installed correctly?" << std::endl;
+            return 0;
+        }
 
 		GLint Result = GL_FALSE;
 		int InfoLogLength;
 
 		// Compile Vertex Shader
-		printf("Compiling shader : %s\n", vertex_file_path);
+        std::cout << "Compiling shader : " << vertex_file_path << std::endl;
 		char const * VertexSourcePointer = VertexShaderCode.c_str();
 		glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
 		glCompileShader(VertexShaderID);
@@ -62,7 +66,7 @@ namespace Helpers
 
 
 		// Compile Fragment Shader
-		printf("Compiling shader : %s\n", fragment_file_path);
+        std::cout << "Compiling shader : " << fragment_file_path;
 		char const * FragmentSourcePointer = FragmentShaderCode.c_str();
 		glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
 		glCompileShader(FragmentShaderID);
@@ -101,7 +105,7 @@ namespace Helpers
 		return ProgramID;
 	}
 
-    GLuint LoadComputeShader(const char* compute_file_path, unsigned int localSizeX, unsigned int localSizeY, unsigned int localSizeZ)
+    GLuint LoadComputeShader(const std::string& compute_file_path, unsigned int localSizeX, unsigned int localSizeY, unsigned int localSizeZ)
 	{
 		GLuint ComputeShaderID = glCreateShader(GL_COMPUTE_SHADER);
 		// Read the compute shader
@@ -119,6 +123,11 @@ namespace Helpers
 				ComputeShaderCode = sstr.str();
 				ComputeShaderCodeStream.close();
 			}
+            else
+            {
+                std::cerr << "Failed to load compute shader file from " << compute_file_path << ". Is this installed correctly?" << std::endl;
+                return 0;
+            }
 		}
 
 		GLint Result = GL_FALSE;
@@ -126,7 +135,7 @@ namespace Helpers
 
 		{
 			// Compile Compute Shader
-			printf("Compiling shader : %s\n", compute_file_path);
+            std::cout << "Compiling shader : " << compute_file_path << std::endl;
 			char const * ComputeSourcePointer = ComputeShaderCode.c_str();
 			glShaderSource(ComputeShaderID, 1, &ComputeSourcePointer, NULL);
 			glCompileShader(ComputeShaderID);
@@ -335,8 +344,8 @@ namespace Helpers
                 std::cout << "Draws a buddhabrot and iterates until the user closes the window. If a --output filename is given, a png file will afterwards be written there." <<std::endl <<
                              "Supported options are:" << std::endl << std::endl <<
                              "--output [path] : File to write output to. Empty by default, meaning no output is written." << std::endl <<
-                             "--imageWidth [integer] : Width of the to be written image. 1920 by default. Ignored if no --output is given." << std::endl <<
-                             "--imageHeight [integer] : Height of the to be written image. 1080 by default. Ignored if no --output is given." << std::endl <<
+                             "--imageWidth [integer] : Width of the to be written image. 1024 by default. Ignored if no --output is given." << std::endl <<
+                             "--imageHeight [integer] : Height of the to be written image. 576 by default. Ignored if no --output is given." << std::endl <<
                              "--imageGamma [float] : Gamma to use when writing the image. 1.0 by default. Ignored if no --output is given." << std::endl <<
                              "--imageColorScale [float] : Image brightness is scaled by the brightest pixel. The result is multiplied by this value. 2.0 by default, as 1.0 leaves very little dynamic range." << std::endl <<
                              "--windowWidth [integer] : Width of the preview window. 1024 by default." << std::endl <<
@@ -391,6 +400,12 @@ namespace Helpers
         }
 
         return true;
+    }
+
+    bool DoesFileExist(const std::string &path)
+    {
+        std::ifstream f(path);
+            return f.good();
     }
 
 }

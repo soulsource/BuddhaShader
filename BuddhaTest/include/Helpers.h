@@ -7,8 +7,10 @@
 
 namespace Helpers
 {
-	GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path);
-    GLuint LoadComputeShader(const char * compute_file_path, unsigned int localSizeX, unsigned int localSizeY, unsigned int localSizeZ);
+    GLuint LoadShaders(const std::string &vertex_file_path, const std::string &fragment_file_path);
+    GLuint LoadComputeShader(const std::string &compute_file_path, unsigned int localSizeX, unsigned int localSizeY, unsigned int localSizeZ);
+
+    bool DoesFileExist(const std::string& path);
 
     void WriteOutputPNG(const std::string& path, const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight, double gamma, double colorScale);
 
@@ -26,8 +28,8 @@ namespace Helpers
 
     struct RenderSettings
     {
-        unsigned int imageWidth = 1920;
-        unsigned int imageHeight = 1080;
+        unsigned int imageWidth = 1024;
+        unsigned int imageHeight = 576;
 
         unsigned int windowWidth = 1024;
         unsigned int windowHeight = 576;
