@@ -10,4 +10,4 @@ The maximum buffer size (and therefore the maximum resolution of the generated i
 
 I doubt that this program is even big enough to fall under any copyright, but if it does, let's just say it's under zlib/libpng license.
 
-*NOTE*: This program includes a copy of glfw ( http://www.glfw.org/ ), which is under zlib/libpng license ( http://www.glfw.org/license.html ), and a copy of files generated using GLAD ( http://glad.dav1d.de ). It further links against libpng. None of these two are my work.
+*NOTE*: This program includes a copy of glfw ( http://www.glfw.org/ ), which is under zlib/libpng license ( http://www.glfw.org/license.html ), and a copy of files generated using GLAD ( http://glad.dav1d.de ). It further links against libpng. None of these libraries are my work.
