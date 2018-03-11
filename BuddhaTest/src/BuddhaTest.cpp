@@ -126,9 +126,20 @@ int main(int argc, char * argv[])
 
     glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
+    //uint32_t iterationsPerFrame = settings.globalWorkGroupSizeX*settings.globalWorkGroupSizeY*settings.globalWorkGroupSizeZ*settings.localWorkgroupSizeX*settings.localWorkgroupSizeY*settings.localWorkgroupSizeZ;
+    //bool bWarningShown{false};
+
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
+        //commented out, as with the new y-decoupling we will get more points in 2D even after we had all integer values for x.
+        //check if we are "done"
+        //if(iterationsPerFrame * iterationCount <= iterationsPerFrame && iterationCount > 1 && !bWarningShown)
+        //{
+        //    std::cout << "The program covered all possible integer values for starting point computation. Leaving it running will not improve the image any more." << std::endl;
+        //    bWarningShown = true;
+        //}
+
 		//let the compute shader do something
 		glUseProgram(ComputeShader);
         //increase iterationCount, which is used for pseudo random generation

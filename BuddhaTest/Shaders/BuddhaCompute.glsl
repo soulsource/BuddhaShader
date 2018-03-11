@@ -33,30 +33,17 @@ void addToColorAt(vec2 complex, uvec3 toAdd)
     addToColorOfCell(cell,toAdd);
 }
 
-/*
-vec2 hash2( uint n, out uint hash )
-{
-    // integer hash copied from Hugo Elias
-    n = (n << 13U) ^ n;
-    n = n * (n * n * 15731U + 789221U) + 1376312589U;
-    hash = n*n;
-    uvec2 k = n * uvec2(n,n*16807U);
-    return vec2( k & uvec2(0x7fffffffU))/float(0x7fffffff);
-}
-*/
-
 uint intHash(uint x) {
     x = ((x >> 16) ^ x) * 0x45d9f3bU;
     x = ((x >> 16) ^ x) * 0x45d9f3bU;
     x = (x >> 16) ^ x;
     return x;
 }
-vec2 hash2(uint n, out uint hash)
+
+float hash1(uint seed, out uint hash)
 {
-    uint ih =intHash(n);
-    hash = intHash(ih);
-    uvec2 k = uvec2(ih,hash);
-    return vec2(k & uvec2(0x7fffffffU))/float(0x7fffffff);
+    hash = intHash(seed);
+    return float(hash)/float(0xffffffffU);
 }
 
 vec2 compSqr(in vec2 v)
@@ -139,14 +126,17 @@ float isInMainBulb(vec2 v)
     return step(sqrRadius,0.062499999);
 }
 
-vec2 getStartValue(uint seed)
+vec2 getStartValue(uint seed, uint yDecoupler)
 {
     uint hash = seed;
 
     vec2 retval = vec2(0);
     for(int i = 0; i < 5; ++i)
     {
-        vec2 random = hash2(hash,hash);
+        float x = hash1(hash,hash);
+        hash = (hash ^ yDecoupler);
+        float y = hash1(hash,hash);
+        vec2 random = vec2(x,y);
         vec2 point = vec2(random.x * 3.5-2.5,random.y*1.55);
         float useThisPoint =1.0-(isInMainBulb(point) + isInMainCardioid(point));
         retval = mix(retval,point,useThisPoint);
@@ -197,8 +187,8 @@ void main() {
 
     //TODO: Check this once I've had some sleep. Anyhow, I'm using 1D, so y and z components globalInfocationID should be zero anyhow.
     uint seed = iterationCount * totalWorkers + gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x + totalWorkersPerDimension.y);
-
-    vec2 offset = getStartValue(seed);
+    uint yDecoupler = iterationCount;
+    vec2 offset = getStartValue(seed, yDecoupler);
 
     if(!isGoingToBeDrawn(offset))
         return;
