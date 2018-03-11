@@ -264,10 +264,12 @@ namespace Helpers
         }
         int maxSSBOSize;
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
-        if((static_cast<unsigned long>(imageWidth) * static_cast<unsigned long>(imageHeight)) > static_cast<unsigned long>(maxSSBOSize)/6)
+        if((static_cast<unsigned long>(imageWidth) * static_cast<unsigned long>(imageHeight)) > static_cast<unsigned long>(maxSSBOSize)/2) //divided by 2, as we have 4 bytes per int, but only half the image height
         {
-            std::cerr << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/6 << std::endl;
-            return false;
+            std::cerr << "Requested buffer size is larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/2 << std::endl;
+            std::cerr << "You can override this limit check using the --ignoreMaxBufferSize 1 command line parameter, but doing so is your own risk." << std::endl;
+            if(ignoreMaxBufferSize == 0)
+                return false;
         }
         int WorkGroupSizeLimitX, WorkGroupSizeLimitY, WorkGroupSizeLimitZ;
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,0,&WorkGroupSizeLimitX);
@@ -332,7 +334,8 @@ namespace Helpers
             {"--globalWorkgroupSizeZ", &globalWorkGroupSizeZ},
             {"--imageGamma",&pngGamma},
             {"--imageColorScale",&pngColorScale},
-            {"--output", &pngFilename}
+            {"--output", &pngFilename},
+            {"--ignoreMaxBufferSize", &ignoreMaxBufferSize}
         };
 
         for(int i=1; i < argc;++i)
@@ -358,7 +361,8 @@ namespace Helpers
                              "\tNOTE: There's also a limit on the product of the three local workgroup sizes, for which a number smaller or equal to 1024 is guaranteed to work. Higher numbers might work and run faster. Feel free to experiment." << std::endl <<
                              "--globalWorkgroupSizeX [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1024." << std::endl <<
                              "--globalWorkgroupSizeY [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl <<
-                             "--globalWorkgroupSizeZ [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl;
+                             "--globalWorkgroupSizeZ [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl <<
+                             "--ignoreMaxBufferSize [0,1] : If set to 1, a failed maximum buffer size check is not treated as error. Some graphics drivers report lower values than their absolute limit. Do this on your own risk, though." << std::endl;
                 return false;
             }
         }

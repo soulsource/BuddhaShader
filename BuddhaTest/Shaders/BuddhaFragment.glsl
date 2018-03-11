@@ -4,9 +4,17 @@ in vec2 uv;
 
 out vec3 color;
 
-layout(std430, binding=2) buffer renderedData
+layout(std430, binding=2) buffer renderedDataRed
 {
-        uint counts_SSBO[];
+        uint counts_SSBORed[];
+};
+layout(std430, binding=3) buffer renderedDataGreen
+{
+        uint counts_SSBOGreen[];
+};
+layout(std430, binding=4) buffer renderedDataBlue
+{
+        uint counts_SSBOBlue[];
 };
 
 uniform uint width;
@@ -16,8 +24,8 @@ uvec3 getColorAt(vec2 fragCoord)
 {
     uint xIndex = uint(max(0.0,(fragCoord.x+1.0)*0.5*width));
     uint yIndex = uint(max(0.0,abs(fragCoord.y)*height));
-    uint firstIndex = 3*(xIndex + yIndex * width);
-    return uvec3(counts_SSBO[firstIndex],counts_SSBO[firstIndex+1],counts_SSBO[firstIndex+2]);
+    uint firstIndex = (xIndex + yIndex * width);
+    return uvec3(counts_SSBORed[firstIndex],counts_SSBOGreen[firstIndex],counts_SSBOBlue[firstIndex]);
 }
 
 void main(){

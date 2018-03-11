@@ -50,6 +50,8 @@ namespace Helpers
         double pngGamma = 1.0;
         double pngColorScale = 2.0;
 
+        unsigned int ignoreMaxBufferSize = 0;
+
         bool CheckValidity();
         bool ParseCommandLine(int argc, char * argv[]);
     };

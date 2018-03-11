@@ -2,9 +2,17 @@
 //#version 430
 //layout (local_size_x = 1024) in; //to be safe, we limit our local work group size to 1024. That's the minimum a GL 4.3 capable driver must support.
 
-layout(std430, binding=2) buffer renderedData
+layout(std430, binding=2) buffer renderedDataRed
 {
-        uint counts_SSBO[];
+        uint counts_SSBORed[];
+};
+layout(std430, binding=3) buffer renderedDataGreen
+{
+        uint counts_SSBOGreen[];
+};
+layout(std430, binding=4) buffer renderedDataBlue
+{
+        uint counts_SSBOBlue[];
 };
 
 uniform uint width;
@@ -15,10 +23,10 @@ uniform uvec3 orbitLength;
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
-    uint firstIndex = 3*(cell.x + cell.y * width);
-    atomicAdd(counts_SSBO[firstIndex],toAdd.x);
-    atomicAdd(counts_SSBO[firstIndex+1],toAdd.y);
-    atomicAdd(counts_SSBO[firstIndex+2],toAdd.z);
+    uint firstIndex = (cell.x + cell.y * width);
+    atomicAdd(counts_SSBORed[firstIndex],toAdd.x);
+    atomicAdd(counts_SSBOGreen[firstIndex],toAdd.y);
+    atomicAdd(counts_SSBOBlue[firstIndex],toAdd.z);
 }
 
 uvec2 getCell(vec2 complex)

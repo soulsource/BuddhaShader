@@ -58,7 +58,7 @@ int main(int argc, char * argv[])
 
     //we have a context. Let's check if input is sane.
     //calcualte buffer size, and make sure it's allowed by the driver.
-    const unsigned int pixelCount{(settings.imageWidth * bufferHeight)*3}; //*3 -> RGB
+    const unsigned int pixelCount{(settings.imageWidth * bufferHeight)};
     if(!settings.CheckValidity())
     {
         glfwTerminate();
@@ -109,15 +109,18 @@ int main(int argc, char * argv[])
 	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
 
-	GLuint drawBuffer;
-	glGenBuffers(1, &drawBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
+    GLuint drawBuffer[3];
+    glGenBuffers(3, drawBuffer);
+    for(int i=0; i < 3; ++i)
     {
-        glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * pixelCount, nullptr, GL_DYNAMIC_COPY);
-        glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer[i]);
+        {
+            glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * pixelCount, nullptr, GL_DYNAMIC_COPY);
+            glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
+        }
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2+i, drawBuffer[i]);
     }
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, drawBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     uint32_t iterationCount{0};
     glUseProgram(ComputeShader);
@@ -188,17 +191,25 @@ int main(int argc, char * argv[])
     if(!settings.pngFilename.empty())
     {
         glMemoryBarrier(GL_ALL_BARRIER_BITS);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
+        std::vector<std::vector<uint32_t>> readBackBuffers(3,std::vector<uint32_t>(pixelCount));
+        for(int i = 0; i < 3; ++i)
         {
-            std::vector<uint32_t> readBackBuffer(pixelCount);
-            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,0,4 * pixelCount,readBackBuffer.data());
-            Helpers::WriteOutputPNG(settings.pngFilename,readBackBuffer,settings.imageWidth,bufferHeight, settings.pngGamma, settings.pngColorScale);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer[i]);
+            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,0,4 * pixelCount,readBackBuffers[i].data());
         }
+
+        //too lazy to change WriteOutputPng...
+        std::vector<uint32_t> combinedBuffer(3*pixelCount);
+        for(int i=0;i<3*pixelCount;++i)
+        {
+            combinedBuffer[i] = readBackBuffers[i%3][i/3];
+        }
+        Helpers::WriteOutputPNG(settings.pngFilename,combinedBuffer,settings.imageWidth,bufferHeight, settings.pngGamma, settings.pngColorScale);
     }
 
     //a bit of cleanup
     glDeleteBuffers(1,&vertexbuffer);
-    glDeleteBuffers(1,&drawBuffer);
+    glDeleteBuffers(3,drawBuffer);
 
 	glfwTerminate();
 	return 0;
