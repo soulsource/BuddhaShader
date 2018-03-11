@@ -344,8 +344,8 @@ namespace Helpers
                 std::cout << "Draws a buddhabrot and iterates until the user closes the window. If a --output filename is given, a png file will afterwards be written there." <<std::endl <<
                              "Supported options are:" << std::endl << std::endl <<
                              "--output [path] : File to write output to. Empty by default, meaning no output is written." << std::endl <<
-                             "--imageWidth [integer] : Width of the to be written image. 1024 by default. Ignored if no --output is given." << std::endl <<
-                             "--imageHeight [integer] : Height of the to be written image. 576 by default. Ignored if no --output is given." << std::endl <<
+                             "--imageWidth [integer] : Width of the to be written image. 1024 by default. If no --output is given, this still detrmines the buffer size for rendering." << std::endl <<
+                             "--imageHeight [integer] : Height of the to be written image. 576 by default. If no --output is given, this still detrmines the buffer size for rendering." << std::endl <<
                              "--imageGamma [float] : Gamma to use when writing the image. 1.0 by default. Ignored if no --output is given." << std::endl <<
                              "--imageColorScale [float] : Image brightness is scaled by the brightest pixel. The result is multiplied by this value. 2.0 by default, as 1.0 leaves very little dynamic range." << std::endl <<
                              "--windowWidth [integer] : Width of the preview window. 1024 by default." << std::endl <<
