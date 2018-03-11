@@ -262,11 +262,9 @@ namespace Helpers
             std::cerr << "Image height has to be an even number." << std::endl;
             return false;
         }
-        const unsigned int bufferHeight = imageHeight/2;
-        const unsigned int pixelCount{(imageWidth * imageHeight/2)*3}; //*3 -> RGB
         int maxSSBOSize;
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
-        if(pixelCount * 4 > static_cast<unsigned int>(maxSSBOSize))
+        if((static_cast<unsigned long>(imageWidth) * static_cast<unsigned long>(imageHeight)) > static_cast<unsigned long>(maxSSBOSize)/6)
         {
             std::cerr << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/6 << std::endl;
             return false;
@@ -294,7 +292,7 @@ namespace Helpers
         }
         int maxInvocations;
         glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS,&maxInvocations);
-        if(localWorkgroupSizeX*localWorkgroupSizeY*localWorkgroupSizeZ > static_cast<unsigned int>(maxInvocations))
+        if(static_cast<unsigned long>(localWorkgroupSizeX)*static_cast<unsigned long>(localWorkgroupSizeY)*static_cast<unsigned long>(localWorkgroupSizeZ) > static_cast<unsigned long>(maxInvocations))
         {
             std::cerr << "Requested local work group size exceeds maximum total count (Product of x*y*z dimensions). Limit: " << maxInvocations << std::endl;
             return false;
