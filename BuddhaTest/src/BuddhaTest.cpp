@@ -87,7 +87,7 @@ int main(int argc, char * argv[])
     GLuint ComputeShader = Helpers::LoadComputeShader(computePath, settings.localWorkgroupSizeX, settings.localWorkgroupSizeY, settings.localWorkgroupSizeZ);
     if(VertexAndFragmentShaders == 0 || ComputeShader == 0)
     {
-        std::cout << "Something went wrong with loading the shaders. Abort." << std::endl;
+        std::cerr << "Something went wrong with loading the shaders. Abort." << std::endl;
         glfwTerminate();
         return 1;
     }

@@ -50,7 +50,7 @@ namespace Helpers
 		int InfoLogLength;
 
 		// Compile Vertex Shader
-        std::cout << "Compiling shader : " << vertex_file_path << std::endl;
+        //std::cout << "Compiling shader : " << vertex_file_path << std::endl;
 		char const * VertexSourcePointer = VertexShaderCode.c_str();
 		glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
 		glCompileShader(VertexShaderID);
@@ -66,7 +66,7 @@ namespace Helpers
 
 
 		// Compile Fragment Shader
-        std::cout << "Compiling shader : " << fragment_file_path;
+        //std::cout << "Compiling shader : " << fragment_file_path << std::endl;
 		char const * FragmentSourcePointer = FragmentShaderCode.c_str();
 		glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
 		glCompileShader(FragmentShaderID);
@@ -81,7 +81,7 @@ namespace Helpers
 		}
 
 		// Link the program
-		printf("Linking program\n");
+        //printf("Linking program\n");
 		GLuint ProgramID = glCreateProgram();
 		glAttachShader(ProgramID, VertexShaderID);
 		glAttachShader(ProgramID, FragmentShaderID);
@@ -135,7 +135,7 @@ namespace Helpers
 
 		{
 			// Compile Compute Shader
-            std::cout << "Compiling shader : " << compute_file_path << std::endl;
+            //std::cout << "Compiling shader : " << compute_file_path << std::endl;
 			char const * ComputeSourcePointer = ComputeShaderCode.c_str();
 			glShaderSource(ComputeShaderID, 1, &ComputeSourcePointer, NULL);
 			glCompileShader(ComputeShaderID);
@@ -202,7 +202,7 @@ namespace Helpers
         ScopedCFileDescriptor fd(path.c_str(), "wb");
         if(!fd.IsValid())
         {
-            std::cout << "Failed to open image.png for writing." << std::endl;
+            std::cerr << "Failed to open image.png for writing." << std::endl;
             return;
         }
         png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
@@ -258,7 +258,7 @@ namespace Helpers
     {
         if(imageHeight%2 != 0)
         {
-            std::cout << "Image height has to be an even number." << std::endl;
+            std::cerr << "Image height has to be an even number." << std::endl;
             return false;
         }
         const unsigned int bufferHeight = imageHeight/2;
@@ -267,7 +267,7 @@ namespace Helpers
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
         if(pixelCount * 4 > maxSSBOSize)
         {
-            std::cout << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/6 << std::endl;
+            std::cerr << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/6 << std::endl;
             return false;
         }
         int WorkGroupSizeLimitX, WorkGroupSizeLimitY, WorkGroupSizeLimitZ;
@@ -278,7 +278,7 @@ namespace Helpers
                 globalWorkGroupSizeY > WorkGroupSizeLimitY ||
                 globalWorkGroupSizeZ > WorkGroupSizeLimitZ)
         {
-            std::cout << "Requested global work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
+            std::cerr << "Requested global work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
             return false;
         }
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,0,&WorkGroupSizeLimitX);
@@ -288,14 +288,14 @@ namespace Helpers
                 localWorkgroupSizeY > WorkGroupSizeLimitY ||
                 localWorkgroupSizeZ > WorkGroupSizeLimitZ)
         {
-            std::cout << "Requested local work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
+            std::cerr << "Requested local work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
             return false;
         }
         int maxInvocations;
         glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS,&maxInvocations);
         if(localWorkgroupSizeX*localWorkgroupSizeY*localWorkgroupSizeZ > maxInvocations)
         {
-            std::cout << "Requested local work group size exceeds maximum total count (Product of x*y*z dimensions). Limit: " << maxInvocations << std::endl;
+            std::cerr << "Requested local work group size exceeds maximum total count (Product of x*y*z dimensions). Limit: " << maxInvocations << std::endl;
             return false;
         }
         return true;
@@ -366,7 +366,7 @@ namespace Helpers
         //apart from --help all parameters consist of 2 entries.
         if(argc%2 != 1)
         {
-            std::cout << "Invalid number of arguments. See --help for usage." << std::endl;
+            std::cerr << "Invalid number of arguments. See --help for usage." << std::endl;
             return false;
         }
         for(int i=1 ; i < argc; i += 2)
@@ -376,7 +376,7 @@ namespace Helpers
             auto setting = commandMap.find(argAsString);
             if(setting == commandMap.end())
             {
-                std::cout << "Unknown option: " << argAsString << std::endl;
+                std::cerr << "Unknown option: " << argAsString << std::endl;
                 return false;
             }
             const SettingsPointer& ptr = setting->second;
