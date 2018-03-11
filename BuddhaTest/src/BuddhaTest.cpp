@@ -53,6 +53,9 @@ int main(int argc, char * argv[])
 	glfwMakeContextCurrent(window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
+    //disable vsync
+    glfwSwapInterval(0);
+
     //we have a context. Let's check if input is sane.
     //calcualte buffer size, and make sure it's allowed by the driver.
     const unsigned int pixelCount{(settings.imageWidth * bufferHeight)*3}; //*3 -> RGB
