@@ -8,6 +8,7 @@
 #include <cmath>
 #include <unordered_map>
 #include <string>
+#include <algorithm>
 
 namespace Helpers
 {
@@ -170,7 +171,7 @@ namespace Helpers
     {
         std::vector<png_byte> pngData(3*width*2*bufferHeight);
         std::vector<png_byte *> rows{2*bufferHeight};
-        for(int i = 0; i < 2*bufferHeight ; ++i)
+        for(unsigned int i = 0; i < 2*bufferHeight ; ++i)
         {
             rows[i] = pngData.data()+3*width*i;
         }
@@ -191,9 +192,9 @@ namespace Helpers
                 pngData[data.size() + i] = (255*data[i] + (maxValue/2))/maxValue;
             }
         }
-        for(int i = 0; i < bufferHeight;++i)
+        for(unsigned int i = 0; i < bufferHeight;++i)
         {
-            for(int j = 0; j < width*3;++j)
+            for(unsigned int j = 0; j < width*3;++j)
             {
                 rows[i][j] =rows[2*bufferHeight-i-1][j];
             }
@@ -265,7 +266,7 @@ namespace Helpers
         const unsigned int pixelCount{(imageWidth * imageHeight/2)*3}; //*3 -> RGB
         int maxSSBOSize;
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
-        if(pixelCount * 4 > maxSSBOSize)
+        if(pixelCount * 4 > static_cast<unsigned int>(maxSSBOSize))
         {
             std::cerr << "Requested buffer size larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/6 << std::endl;
             return false;
@@ -274,9 +275,9 @@ namespace Helpers
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,0,&WorkGroupSizeLimitX);
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,1,&WorkGroupSizeLimitY);
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT,2,&WorkGroupSizeLimitZ);
-        if(globalWorkGroupSizeX > WorkGroupSizeLimitX ||
-                globalWorkGroupSizeY > WorkGroupSizeLimitY ||
-                globalWorkGroupSizeZ > WorkGroupSizeLimitZ)
+        if(globalWorkGroupSizeX > static_cast<unsigned int>(WorkGroupSizeLimitX) ||
+                globalWorkGroupSizeY > static_cast<unsigned int>(WorkGroupSizeLimitY) ||
+                globalWorkGroupSizeZ > static_cast<unsigned int>(WorkGroupSizeLimitZ))
         {
             std::cerr << "Requested global work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
             return false;
@@ -284,16 +285,16 @@ namespace Helpers
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,0,&WorkGroupSizeLimitX);
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,1,&WorkGroupSizeLimitY);
         glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE,2,&WorkGroupSizeLimitZ);
-        if(localWorkgroupSizeX > WorkGroupSizeLimitX ||
-                localWorkgroupSizeY > WorkGroupSizeLimitY ||
-                localWorkgroupSizeZ > WorkGroupSizeLimitZ)
+        if(localWorkgroupSizeX > static_cast<unsigned int>(WorkGroupSizeLimitX) ||
+                localWorkgroupSizeY > static_cast<unsigned int>(WorkGroupSizeLimitY) ||
+                localWorkgroupSizeZ > static_cast<unsigned int>(WorkGroupSizeLimitZ))
         {
             std::cerr << "Requested local work group size exceeds maximum dimension. Limits: " << WorkGroupSizeLimitX << ", " << WorkGroupSizeLimitY << ", " << WorkGroupSizeLimitZ << std::endl;
             return false;
         }
         int maxInvocations;
         glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS,&maxInvocations);
-        if(localWorkgroupSizeX*localWorkgroupSizeY*localWorkgroupSizeZ > maxInvocations)
+        if(localWorkgroupSizeX*localWorkgroupSizeY*localWorkgroupSizeZ > static_cast<unsigned int>(maxInvocations))
         {
             std::cerr << "Requested local work group size exceeds maximum total count (Product of x*y*z dimensions). Limit: " << maxInvocations << std::endl;
             return false;
