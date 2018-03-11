@@ -134,7 +134,7 @@ vec2 getStartValue(uint seed, uint yDecoupler)
     for(int i = 0; i < 5; ++i)
     {
         float x = hash1(hash,hash);
-        hash = (hash ^ yDecoupler);
+        hash = (hash ^ intHash(yDecoupler));
         float y = hash1(hash,hash);
         vec2 random = vec2(x,y);
         vec2 point = vec2(random.x * 3.5-2.5,random.y*1.55);
