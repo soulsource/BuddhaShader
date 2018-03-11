@@ -185,7 +185,7 @@ namespace Helpers
         {
             if(fabs(gamma - 1.0) > 0.0001 || fabs(colorScale - 1.0) > 0.0001)
             {
-                pngData[data.size() + i] = 255.0 * pow(std::min(1.0,colorScale*static_cast<double>(data[i])/static_cast<double>(maxValue)),gamma);
+                pngData[data.size() + i] = static_cast<png_byte>(255.0 * pow(std::min(1.0,colorScale*static_cast<double>(data[i])/static_cast<double>(maxValue)),gamma));
             }
             else
             {
