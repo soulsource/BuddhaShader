@@ -9,6 +9,11 @@ void error_callback(int error, const char* description)
 	std::cerr << "Error: " << description << std::endl;
 }
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
 int main(int argc, char * argv[])
 {
     Helpers::RenderSettings settings;
@@ -40,6 +45,9 @@ int main(int argc, char * argv[])
 		glfwTerminate();
 		return -1;
 	}
+
+    //register callback on window resize:
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	/* Make the window's context current */
 	glfwMakeContextCurrent(window);
