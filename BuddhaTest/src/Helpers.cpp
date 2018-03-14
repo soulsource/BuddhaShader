@@ -332,6 +332,7 @@ namespace Helpers
             {"--globalWorkgroupSizeX", &globalWorkGroupSizeX},
             {"--globalWorkgroupSizeY", &globalWorkGroupSizeY},
             {"--globalWorkgroupSizeZ", &globalWorkGroupSizeZ},
+            {"--iterationsPerFrame", &iterationsPerFrame},
             {"--imageGamma",&pngGamma},
             {"--imageColorScale",&pngColorScale},
             {"--output", &pngFilename},
@@ -362,6 +363,7 @@ namespace Helpers
                              "--globalWorkgroupSizeX [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1024." << std::endl <<
                              "--globalWorkgroupSizeY [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl <<
                              "--globalWorkgroupSizeZ [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl <<
+                             "--iterationsPerFrame [integer] : Limit how many iteration steps the shader may make per frame. Use this to keep the desktop responsive while rendering high iteration count images. Default: 1000." << std::endl <<
                              "--ignoreMaxBufferSize [0,1] : If set to 1, a failed maximum buffer size check is not treated as error. Some graphics drivers report lower values than their absolute limit. Do this on your own risk, though." << std::endl;
                 return false;
             }

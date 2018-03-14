@@ -4,15 +4,20 @@
 
 layout(std430, binding=2) buffer renderedDataRed
 {
-        uint counts_SSBORed[];
+    uint counts_SSBORed[];
 };
 layout(std430, binding=3) buffer renderedDataGreen
 {
-        uint counts_SSBOGreen[];
+    uint counts_SSBOGreen[];
 };
 layout(std430, binding=4) buffer renderedDataBlue
 {
-        uint counts_SSBOBlue[];
+    uint counts_SSBOBlue[];
+};
+layout(std430, binding=5) buffer statusBuffer
+{
+    uint accumulatedState;
+    uint individualState[];
 };
 
 uniform uint width;
@@ -20,6 +25,28 @@ uniform uint height;
 
 uniform uint iterationCount;
 uniform uvec3 orbitLength;
+
+uniform uint iterationChanged;
+uniform uint iterationsPerDispatch;
+
+void getIndividualState(in uint CellID, out vec2 coordinates, out uint phase, out uint remainingIterations)
+{
+    uint x = individualState[4*CellID];
+    uint y = individualState[4*CellID+1];
+    phase = individualState[4*CellID+2];
+    remainingIterations = individualState[4*CellID+3];
+    coordinates = vec2(uintBitsToFloat(x),uintBitsToFloat(y));
+}
+
+void setIndividualState(in uint CellID, in vec2 coordinates, in uint phase, in uint remainingIterations)
+{
+    uint x=floatBitsToUint(coordinates.x);
+    uint y=floatBitsToUint(coordinates.y);
+    atomicExchange(individualState[4*CellID],x);
+    atomicExchange(individualState[4*CellID+1],y);
+    atomicExchange(individualState[4*CellID+2],phase);
+    atomicExchange(individualState[4*CellID+3],remainingIterations);
+}
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
@@ -152,39 +179,40 @@ vec2 getStartValue(uint seed, uint yDecoupler)
     return retval;
 }
 
-bool isGoingToBeDrawn(vec2 offset)
+bool isGoingToBeDrawn(in vec2 offset, inout vec2 lastVal, inout uint remainingIterations, out bool result)
 {
-    vec2 val = vec2(0);
-    uint limit = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
-    limit = limit > orbitLength.z ? limit : orbitLength.z;
-    for(uint i = 0; i < limit;++i)
+    uint startCount = remainingIterations > iterationsPerDispatch ? remainingIterations - iterationsPerDispatch : 0;
+    for(uint i = startCount; i < remainingIterations;++i)
     {
-        val = compSqr(val) + offset;
-        if(dot(val,val) > 4.0)
+        lastVal = compSqr(lastVal) + offset;
+        if(dot(lastVal,lastVal) > 4.0)
         {
+            result = true;
             return true;
         }
     }
-    return false;
+    remainingIterations -= iterationsPerDispatch; //can underflow, we don't care, as if that happens, we return true and discard the value anyhow.
+    result = false;
+    return startCount == 0;
 }
 
-void drawOrbit(vec2 offset)
+bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint remainingIterations)
 {
-    vec2 val = vec2(0);
-    uint limit = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
-    limit = limit > orbitLength.z ? limit : orbitLength.z;
-    for(uint i = 0; i < limit;++i)
+    uint startCount = remainingIterations > iterationsPerDispatch ? remainingIterations - iterationsPerDispatch : 0;
+    for(uint i = totalIterations - remainingIterations; i < totalIterations - startCount;++i)
     {
-        val = compSqr(val) + offset;
-        if(dot(val,val) > 20.0)
+        lastVal = compSqr(lastVal) + offset;
+        if(dot(lastVal,lastVal) > 20.0)
         {
-            return;
+            return true; //done.
         }
-        if(val.x > -2.5 && val.x < 1.0 && val.y > -1.0 && val.y < 1.0)
+        if(lastVal.x > -2.5 && lastVal.x < 1.0 && lastVal.y > -1.0 && lastVal.y < 1.0)
         {
-            addToColorAt(val,uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
+            addToColorAt(lastVal,uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
         }
     }
+    remainingIterations -= iterationsPerDispatch; //can underflow, we don't care, as if that happens, we return true and discard the value anyhow.
+    return startCount == 0;
 }
 
 void main() {
@@ -194,12 +222,55 @@ void main() {
     uint totalWorkers = totalWorkersPerDimension.x*totalWorkersPerDimension.y*totalWorkersPerDimension.z;
 
     //TODO: Check this once I've had some sleep. Anyhow, I'm using 1D, so y and z components globalInfocationID should be zero anyhow.
-    uint seed = iterationCount * totalWorkers + gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x + totalWorkersPerDimension.y);
+    uint uniqueWorkerID = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x + totalWorkersPerDimension.y);
+    uint seed = iterationCount * totalWorkers + uniqueWorkerID;
     uint yDecoupler = iterationCount;
     vec2 offset = getStartValue(seed, yDecoupler);
 
-    if(!isGoingToBeDrawn(offset))
-        return;
+    uint totalIterations = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
+    totalIterations = totalIterations > orbitLength.z ? totalIterations : orbitLength.z;
 
-    drawOrbit(offset);
+    //getIndividualState(in uint CellID, out vec2 coordinates, out uint phase, out uint remainingIterations)
+    vec2 lastPosition = vec2(0);
+    uint phase = 0;
+    uint remainingIterations;
+    if(iterationChanged == 0) //same iteration as last time, reuse old state.
+    {
+        getIndividualState(uniqueWorkerID, lastPosition, phase, remainingIterations);
+    }
+    else
+    {
+        remainingIterations = totalIterations;
+    }
+
+    if(phase == 0)
+    {
+        //check if this orbit is going to be drawn
+        bool result;
+        if(isGoingToBeDrawn(offset, lastPosition, remainingIterations, result))
+        {
+            //done, proceed to phase 1 or 2, based on result.
+            phase = result ? 1 : 2;
+            lastPosition = vec2(0);
+            remainingIterations = totalIterations;
+        }
+    }
+    else if(phase == 1) //else if. We allow less than the user set iterations per dispatch, but never more.
+    {
+        //draw orbit
+        if(drawOrbit(offset, totalIterations, lastPosition, remainingIterations))
+        {
+            //done.
+            phase = 2;
+        }
+    }
+    if(phase == 2)
+    {
+        //done.
+        remainingIterations = 0;
+    }
+
+
+    setIndividualState(uniqueWorkerID, lastPosition, phase, remainingIterations);
+    atomicOr(accumulatedState, uint(phase != 2));
 }
