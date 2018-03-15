@@ -172,18 +172,18 @@ bool isInMainBulb(vec2 v)
 vec2 getStartValue(uint seed, uint yDecoupler)
 {
     uint hash = seed;
-    bool pointUnusable;
-    vec2 point;
-    do
+
+    for(uint i = 0; i < 5;++i)
     {
         float x = hash1(hash,hash);
         hash = (hash ^ intHash(yDecoupler));
         float y = hash1(hash,hash);
         vec2 random = vec2(x,y);
-        point = vec2(random.x * 3.5-2.5,random.y*1.55);
-        pointUnusable = (isInMainBulb(point) || isInMainCardioid(point));
-    }while(pointUnusable);
-    return point;
+        vec2 point = vec2(random.x * 3.5-2.5,random.y*1.55);
+        if(!(isInMainBulb(point) || isInMainCardioid(point)))
+            return point;
+    }
+    return vec2(0);
 }
 
 bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations, out bool result)

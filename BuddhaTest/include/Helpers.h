@@ -46,7 +46,7 @@ namespace Helpers
         unsigned int globalWorkGroupSizeY = 1;
         unsigned int globalWorkGroupSizeZ = 1;
 
-        unsigned int iterationsPerFrame = 10;
+        unsigned int targetFrameRate = 60;
 
         std::string pngFilename = "";
         double pngGamma = 1.0;
@@ -56,5 +56,29 @@ namespace Helpers
 
         bool CheckValidity();
         bool ParseCommandLine(int argc, char * argv[]);
+    };
+
+    template<typename ValueType, typename TimeType>
+    class PIDController
+    {
+    public:
+        PIDController(ValueType prop, ValueType diff, ValueType integral) : propFactor(prop), diffFactor(diff), intFactor(integral) {}
+
+        ValueType Update(TimeType dT, ValueType Error)
+        {
+            errorSum += Error * dT;
+            const auto differential{(Error - lastError)/dT};
+            lastError = Error;
+            return Error * propFactor + errorSum * intFactor + differential * diffFactor;
+        }
+
+    protected:
+        ValueType propFactor{};
+        ValueType diffFactor{};
+        ValueType intFactor{};
+
+    private:
+        ValueType errorSum{};
+        ValueType lastError{};
     };
 }

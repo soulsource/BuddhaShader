@@ -3,6 +3,7 @@
 #include <Helpers.h>
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 void error_callback(int error, const char* description)
 {
@@ -138,21 +139,26 @@ int main(int argc, char * argv[])
     glUniform3ui(orbitLengthUniformHandle,settings.orbitLengthRed,settings.orbitLengthGreen,settings.orbitLengthBlue);
     glUniform1ui(widthUniformComputeHandle, settings.imageWidth);
     glUniform1ui(heightUniformComputeHandle, bufferHeight);
-    glUniform1ui(iterationsPerDispatchHandle, settings.iterationsPerFrame);
 
     glUseProgram(VertexAndFragmentShaders);
     GLint widthUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "width");
     GLint heightUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "height");
     glUniform1ui(widthUniformFragmentHandle, settings.imageWidth);
     glUniform1ui(heightUniformFragmentHandle, bufferHeight);
-
     glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+
+    uint32_t iterationsPerFrame = 1;
+
+    Helpers::PIDController<float, uint32_t> pid{0.0f,0.0f,1e-6f};
+    const uint32_t targetFrameDuration{1000000/settings.targetFrameRate};
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
+        auto frameStart{std::chrono::high_resolution_clock::now()};
 		//let the compute shader do something
         glUseProgram(ComputeShader);
+        glUniform1ui(iterationsPerDispatchHandle, iterationsPerFrame);
         glDispatchCompute(settings.globalWorkGroupSizeX, settings.globalWorkGroupSizeY, settings.globalWorkGroupSizeZ);
 
         //before reading the values in the ssbo, we need a memory barrier:
@@ -181,6 +187,17 @@ int main(int argc, char * argv[])
 
 		/* Poll for and process events */
 		glfwPollEvents();
+        auto frameStop{std::chrono::high_resolution_clock::now()};
+        const auto dur{std::chrono::duration_cast<std::chrono::microseconds>(frameStop-frameStart)};
+        auto frameDuration{dur.count()};
+        if(frameDuration > 0)
+        {
+            const auto error{targetFrameDuration - frameDuration};
+            const auto pidOutput{pid.Update(frameDuration,error)};
+            iterationsPerFrame = std::max(1,static_cast<int>(pidOutput));
+
+            //std::cout << iterationsPerFrame << " " << pidOutput << std::endl;
+        }
 	}
 
     if(!settings.pngFilename.empty())
