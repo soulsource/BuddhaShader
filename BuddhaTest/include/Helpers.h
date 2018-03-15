@@ -46,7 +46,7 @@ namespace Helpers
         unsigned int globalWorkGroupSizeY = 1;
         unsigned int globalWorkGroupSizeZ = 1;
 
-        unsigned int iterationsPerFrame = 1000;
+        unsigned int iterationsPerFrame = 10;
 
         std::string pngFilename = "";
         double pngGamma = 1.0;

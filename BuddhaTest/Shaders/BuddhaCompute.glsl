@@ -187,33 +187,36 @@ vec2 getStartValue(uint seed, uint yDecoupler)
     return retval;
 }
 
-bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint doneIterations, out bool result)
+bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations, out bool result)
 {
-    uint endCount = doneIterations + iterationsPerDispatch > totalIterations ? totalIterations : doneIterations + iterationsPerDispatch;
+    uint endCount = doneIterations + iterationsLeftThisFrame > totalIterations ? totalIterations : doneIterations + iterationsLeftThisFrame;
     for(uint i = doneIterations; i < endCount;++i)
     {
         lastVal = compSqr(lastVal) + offset;
         if(dot(lastVal,lastVal) > 4.0)
         {
             result = true;
+            iterationsLeftThisFrame -= i+1-doneIterations;
             doneIterations = i+1;
             return true;
         }
     }
     doneIterations = endCount;
+    iterationsLeftThisFrame = 0;
     result = false;
     return endCount == totalIterations;
 }
 
-bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint doneIterations)
+bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations)
 {
-    uint endCount = doneIterations + iterationsPerDispatch > totalIterations ? totalIterations : doneIterations + iterationsPerDispatch;
+    uint endCount = doneIterations + iterationsLeftThisFrame > totalIterations ? totalIterations : doneIterations + iterationsLeftThisFrame;
     for(uint i = doneIterations; i < endCount;++i)
     {
         lastVal = compSqr(lastVal) + offset;
         if(dot(lastVal,lastVal) > 20.0)
         {
             doneIterations = i+1;
+            iterationsLeftThisFrame -= i+1-doneIterations;
             return true; //done.
         }
         if(lastVal.x > -2.5 && lastVal.x < 1.0 && lastVal.y > -1.0 && lastVal.y < 1.0)
@@ -222,6 +225,7 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
         }
     }
     doneIterations = endCount;
+    iterationsLeftThisFrame = 0;
     return endCount == totalIterations;
 }
 
@@ -245,43 +249,47 @@ void main() {
     vec2 offset;
     //getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
     getIndividualState(uniqueWorkerID, offset, lastPosition, phase, orbitNumber, doneIterations);
-    if(phase == 0)
+    uint iterationsLeftToDo = iterationsPerDispatch;
+    while(iterationsLeftToDo != 0)
     {
-        //new orbit:
-        uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
-        uint yDecoupler = orbitNumber;
-        offset = getStartValue(seed, yDecoupler);
-        lastPosition = vec2(0);
-        phase = 1;
-        doneIterations = 0;
-    }
-    if(phase == 1)
-    {
-        //check if this orbit is going to be drawn
-        bool result;
-        if(isGoingToBeDrawn(offset,totalIterations, lastPosition, doneIterations , result))
+        if(phase == 0)
         {
-            if(result)
+            //new orbit:
+            uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
+            uint yDecoupler = orbitNumber;
+            offset = getStartValue(seed, yDecoupler);
+            lastPosition = vec2(0);
+            phase = 1;
+            doneIterations = 0;
+        }
+        if(phase == 1)
+        {
+            //check if this orbit is going to be drawn
+            bool result;
+            if(isGoingToBeDrawn(offset,totalIterations, lastPosition, iterationsLeftToDo, doneIterations , result))
             {
-                //on to step 2: drawing
-                phase = 2;
-                lastPosition = vec2(0);
-                doneIterations = 0;
+                if(result)
+                {
+                    //on to step 2: drawing
+                    phase = 2;
+                    lastPosition = vec2(0);
+                    doneIterations = 0;
+                }
+                else
+                {
+                    //back to step 0
+                    ++orbitNumber;
+                    phase = 0;
+                }
             }
-            else
+        }
+        else if(phase == 2)
+        {
+            if(drawOrbit(offset, totalIterations, lastPosition, iterationsLeftToDo, doneIterations))
             {
-                //back to step 0
                 ++orbitNumber;
                 phase = 0;
             }
-        }
-    }
-    else if(phase == 2)
-    {
-        if(drawOrbit(offset, totalIterations, lastPosition, doneIterations))
-        {
-            ++orbitNumber;
-            phase = 0;
         }
     }
 
