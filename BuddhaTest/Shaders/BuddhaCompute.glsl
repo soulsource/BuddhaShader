@@ -94,7 +94,7 @@ vec2 compSqr(in vec2 v)
         return vec2(v.x*v.x-v.y*v.y, 2.0*v.x*v.y);
 }
 
-float isInMainCardioid(vec2 v)
+bool isInMainCardioid(vec2 v)
 {
     /*
     The condition that a point c is in the main cardioid is that its orbit has
@@ -152,10 +152,10 @@ float isInMainCardioid(vec2 v)
     vec2 z = vec2(1.0,0.0)-4.0*v;
     float zNormSqr = dot(z,z);
     float rhsSqrt = 0.5*zNormSqr - z.x;
-    return step(rhsSqrt*rhsSqrt,zNormSqr);
+    return rhsSqrt*rhsSqrt<zNormSqr;
 }
 
-float isInMainBulb(vec2 v)
+bool isInMainBulb(vec2 v)
 {
     //The condition for this is that f(f(z)) = z
     //where f(z) = z*z+v
@@ -166,14 +166,13 @@ float isInMainBulb(vec2 v)
     //Well, after a bit of magic one finds out it's a circle around -1, radius 1/4.
     vec2 shifted = v + vec2(1,0);
     float sqrRadius = dot(shifted,shifted);
-    return step(sqrRadius,0.062499999);
+    return sqrRadius<0.062499999;
 }
 
 vec2 getStartValue(uint seed, uint yDecoupler)
 {
     uint hash = seed;
 
-    vec2 retval = vec2(0);
     for(int i = 0; i < 5; ++i)
     {
         float x = hash1(hash,hash);
@@ -181,10 +180,11 @@ vec2 getStartValue(uint seed, uint yDecoupler)
         float y = hash1(hash,hash);
         vec2 random = vec2(x,y);
         vec2 point = vec2(random.x * 3.5-2.5,random.y*1.55);
-        float useThisPoint =1.0-(isInMainBulb(point) + isInMainCardioid(point));
-        retval = mix(retval,point,useThisPoint);
+        bool useThisPoint = !(isInMainBulb(point) || isInMainCardioid(point));
+        if(useThisPoint)
+            return point;
     }
-    return retval;
+    return vec2(0);
 }
 
 bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations, out bool result)
@@ -215,8 +215,8 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
         lastVal = compSqr(lastVal) + offset;
         if(dot(lastVal,lastVal) > 20.0)
         {
-            doneIterations = i+1;
             iterationsLeftThisFrame -= i+1-doneIterations;
+            doneIterations = i+1;
             return true; //done.
         }
         if(lastVal.x > -2.5 && lastVal.x < 1.0 && lastVal.y > -1.0 && lastVal.y < 1.0)
