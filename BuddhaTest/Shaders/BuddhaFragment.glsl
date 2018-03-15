@@ -4,17 +4,17 @@ in vec2 uv;
 
 out vec3 color;
 
-layout(std430, binding=2) buffer renderedDataRed
+layout(std430, binding=2) restrict readonly buffer renderedDataRed
 {
-        uint counts_SSBORed[];
+        restrict readonly uint counts_SSBORed[];
 };
-layout(std430, binding=3) buffer renderedDataGreen
+layout(std430, binding=3) restrict readonly buffer renderedDataGreen
 {
-        uint counts_SSBOGreen[];
+        restrict readonly uint counts_SSBOGreen[];
 };
-layout(std430, binding=4) buffer renderedDataBlue
+layout(std430, binding=4) restrict readonly buffer renderedDataBlue
 {
-        uint counts_SSBOBlue[];
+        restrict readonly uint counts_SSBOBlue[];
 };
 
 uniform uint width;

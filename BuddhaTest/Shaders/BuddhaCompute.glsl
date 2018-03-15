@@ -2,21 +2,21 @@
 //#version 430
 //layout (local_size_x = 1024) in; //to be safe, we limit our local work group size to 1024. That's the minimum a GL 4.3 capable driver must support.
 
-layout(std430, binding=2) buffer renderedDataRed
+layout(std430, binding=2) restrict buffer renderedDataRed
 {
-    uint counts_SSBORed[];
+    restrict uint counts_SSBORed[];
 };
-layout(std430, binding=3) buffer renderedDataGreen
+layout(std430, binding=3) restrict buffer renderedDataGreen
 {
-    uint counts_SSBOGreen[];
+    restrict uint counts_SSBOGreen[];
 };
-layout(std430, binding=4) buffer renderedDataBlue
+layout(std430, binding=4) restrict buffer renderedDataBlue
 {
-    uint counts_SSBOBlue[];
+    restrict uint counts_SSBOBlue[];
 };
-layout(std430, binding=5) buffer statusBuffer
+layout(std430, binding=5) restrict buffer statusBuffer
 {
-    uint individualState[];
+    restrict uint individualState[];
 };
 
 uniform uint width;
@@ -172,19 +172,18 @@ bool isInMainBulb(vec2 v)
 vec2 getStartValue(uint seed, uint yDecoupler)
 {
     uint hash = seed;
-
-    for(int i = 0; i < 5; ++i)
+    bool pointUnusable;
+    vec2 point;
+    do
     {
         float x = hash1(hash,hash);
         hash = (hash ^ intHash(yDecoupler));
         float y = hash1(hash,hash);
         vec2 random = vec2(x,y);
-        vec2 point = vec2(random.x * 3.5-2.5,random.y*1.55);
-        bool useThisPoint = !(isInMainBulb(point) || isInMainCardioid(point));
-        if(useThisPoint)
-            return point;
-    }
-    return vec2(0);
+        point = vec2(random.x * 3.5-2.5,random.y*1.55);
+        pointUnusable = (isInMainBulb(point) || isInMainCardioid(point));
+    }while(pointUnusable);
+    return point;
 }
 
 bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations, out bool result)
