@@ -149,7 +149,7 @@ int main(int argc, char * argv[])
 
     uint32_t iterationsPerFrame = 1;
 
-    Helpers::PIDController<float, uint32_t> pid{0.0f,0.0f,1e-6f};
+    Helpers::PIDController<float, uint32_t> pid{0.0f,0.0f,1e-8f};
     const uint32_t targetFrameDuration{1000000/settings.targetFrameRate};
 
 	/* Loop until the user closes the window */
@@ -196,7 +196,7 @@ int main(int argc, char * argv[])
             const auto pidOutput{pid.Update(frameDuration,error)};
             iterationsPerFrame = std::max(1,static_cast<int>(pidOutput));
 
-            //std::cout << iterationsPerFrame << " " << pidOutput << std::endl;
+            std::cout << iterationsPerFrame << " " << pidOutput << std::endl;
         }
 	}
 
