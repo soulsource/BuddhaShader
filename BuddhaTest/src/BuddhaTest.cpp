@@ -126,22 +126,18 @@ int main(int argc, char * argv[])
     GLuint stateBuffer;
     glGenBuffers(1,&stateBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER,stateBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 4*(4*workersPerFrame+1),nullptr,GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 4*(7*workersPerFrame),nullptr,GL_DYNAMIC_COPY);
     glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, stateBuffer);
 
-    uint32_t iterationCount{0};
     glUseProgram(ComputeShader);
-    GLint iterationCountUniformHandle = glGetUniformLocation(ComputeShader, "iterationCount");
     GLint orbitLengthUniformHandle = glGetUniformLocation(ComputeShader, "orbitLength");
     GLint widthUniformComputeHandle = glGetUniformLocation(ComputeShader, "width");
     GLint heightUniformComputeHandle = glGetUniformLocation(ComputeShader, "height");
-    GLint iterationChangedHandle = glGetUniformLocation(ComputeShader, "iterationChanged");
     GLint iterationsPerDispatchHandle = glGetUniformLocation(ComputeShader, "iterationsPerDispatch");
     glUniform3ui(orbitLengthUniformHandle,settings.orbitLengthRed,settings.orbitLengthGreen,settings.orbitLengthBlue);
     glUniform1ui(widthUniformComputeHandle, settings.imageWidth);
     glUniform1ui(heightUniformComputeHandle, bufferHeight);
-    glUniform1ui(iterationChangedHandle,1);
     glUniform1ui(iterationsPerDispatchHandle, settings.iterationsPerFrame);
 
     glUseProgram(VertexAndFragmentShaders);
@@ -155,33 +151,12 @@ int main(int argc, char * argv[])
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
-        //clear first integer in state buffer. That's the "boolean" we use to determine if we should increment iterationCount.
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER,stateBuffer);
-        glClearBufferSubData(GL_SHADER_STORAGE_BUFFER,GL_R8,0,4,GL_RED,GL_UNSIGNED_INT,nullptr);
-
 		//let the compute shader do something
-		glUseProgram(ComputeShader);
-        //set iterationCount, which is used for pseudo random generation
-        glUniform1ui(iterationCountUniformHandle,iterationCount);
+        glUseProgram(ComputeShader);
         glDispatchCompute(settings.globalWorkGroupSizeX, settings.globalWorkGroupSizeY, settings.globalWorkGroupSizeZ);
 
         //before reading the values in the ssbo, we need a memory barrier:
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); //I hope this is the correct (and only required) bit
-
-        //read back first bit of state buffer. If it's zero, increment iterationcount and set glUniform1ui(iterationChangedHandle,1);
-        //if it's nonzero set glUniform1ui(iterationChangedHandle,0);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER,stateBuffer);
-        uint accumulatedState;
-        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,0,4,&accumulatedState);
-        if(accumulatedState)
-        {
-            glUniform1ui(iterationChangedHandle,0);
-        }
-        else
-        {
-            glUniform1ui(iterationChangedHandle,1);
-            ++iterationCount;
-        }
 
 		/* Render here */
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

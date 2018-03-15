@@ -16,36 +16,44 @@ layout(std430, binding=4) buffer renderedDataBlue
 };
 layout(std430, binding=5) buffer statusBuffer
 {
-    uint accumulatedState;
     uint individualState[];
 };
 
 uniform uint width;
 uniform uint height;
 
-uniform uint iterationCount;
 uniform uvec3 orbitLength;
 
-uniform uint iterationChanged;
 uniform uint iterationsPerDispatch;
 
-void getIndividualState(in uint CellID, out vec2 coordinates, out uint phase, out uint remainingIterations)
+void getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
 {
-    uint x = individualState[4*CellID];
-    uint y = individualState[4*CellID+1];
-    phase = individualState[4*CellID+2];
-    remainingIterations = individualState[4*CellID+3];
+    uint startIndex = 7*CellID;
+    uint x = individualState[startIndex];
+    uint y = individualState[startIndex+1];
+    phase = individualState[startIndex+2];
+    orbitNumber = individualState[startIndex+3];
+    doneIterations = individualState[startIndex+4];
+    uint offx =  individualState[startIndex+5];
+    uint offy =  individualState[startIndex+6];
     coordinates = vec2(uintBitsToFloat(x),uintBitsToFloat(y));
+    offset = vec2(uintBitsToFloat(offx),uintBitsToFloat(offy));
 }
 
-void setIndividualState(in uint CellID, in vec2 coordinates, in uint phase, in uint remainingIterations)
+void setIndividualState(in uint CellID, in vec2 offset, in vec2 coordinates, in uint phase, in uint orbitNumber, in uint doneIterations)
 {
+    uint startIndex = 7*CellID;
     uint x=floatBitsToUint(coordinates.x);
     uint y=floatBitsToUint(coordinates.y);
-    atomicExchange(individualState[4*CellID],x);
-    atomicExchange(individualState[4*CellID+1],y);
-    atomicExchange(individualState[4*CellID+2],phase);
-    atomicExchange(individualState[4*CellID+3],remainingIterations);
+    uint offx = floatBitsToUint(offset.x);
+    uint offy = floatBitsToUint(offset.y);
+    atomicExchange(individualState[startIndex],x);
+    atomicExchange(individualState[startIndex+1],y);
+    atomicExchange(individualState[startIndex+2],phase);
+    atomicExchange(individualState[startIndex+3],orbitNumber);
+    atomicExchange(individualState[startIndex+4],doneIterations);
+    atomicExchange(individualState[startIndex+5],offx);
+    atomicExchange(individualState[startIndex+6],offy);
 }
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
@@ -179,31 +187,33 @@ vec2 getStartValue(uint seed, uint yDecoupler)
     return retval;
 }
 
-bool isGoingToBeDrawn(in vec2 offset, inout vec2 lastVal, inout uint remainingIterations, out bool result)
+bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint doneIterations, out bool result)
 {
-    uint startCount = remainingIterations > iterationsPerDispatch ? remainingIterations - iterationsPerDispatch : 0;
-    for(uint i = startCount; i < remainingIterations;++i)
+    uint endCount = doneIterations + iterationsPerDispatch > totalIterations ? totalIterations : doneIterations + iterationsPerDispatch;
+    for(uint i = doneIterations; i < endCount;++i)
     {
         lastVal = compSqr(lastVal) + offset;
         if(dot(lastVal,lastVal) > 4.0)
         {
             result = true;
+            doneIterations = i+1;
             return true;
         }
     }
-    remainingIterations -= iterationsPerDispatch; //can underflow, we don't care, as if that happens, we return true and discard the value anyhow.
+    doneIterations = endCount;
     result = false;
-    return startCount == 0;
+    return endCount == totalIterations;
 }
 
-bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint remainingIterations)
+bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint doneIterations)
 {
-    uint startCount = remainingIterations > iterationsPerDispatch ? remainingIterations - iterationsPerDispatch : 0;
-    for(uint i = totalIterations - remainingIterations; i < totalIterations - startCount;++i)
+    uint endCount = doneIterations + iterationsPerDispatch > totalIterations ? totalIterations : doneIterations + iterationsPerDispatch;
+    for(uint i = doneIterations; i < endCount;++i)
     {
         lastVal = compSqr(lastVal) + offset;
         if(dot(lastVal,lastVal) > 20.0)
         {
+            doneIterations = i+1;
             return true; //done.
         }
         if(lastVal.x > -2.5 && lastVal.x < 1.0 && lastVal.y > -1.0 && lastVal.y < 1.0)
@@ -211,8 +221,8 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
             addToColorAt(lastVal,uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
         }
     }
-    remainingIterations -= iterationsPerDispatch; //can underflow, we don't care, as if that happens, we return true and discard the value anyhow.
-    return startCount == 0;
+    doneIterations = endCount;
+    return endCount == totalIterations;
 }
 
 void main() {
@@ -223,54 +233,58 @@ void main() {
 
     //TODO: Check this once I've had some sleep. Anyhow, I'm using 1D, so y and z components globalInfocationID should be zero anyhow.
     uint uniqueWorkerID = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x + totalWorkersPerDimension.y);
-    uint seed = iterationCount * totalWorkers + uniqueWorkerID;
-    uint yDecoupler = iterationCount;
-    vec2 offset = getStartValue(seed, yDecoupler);
 
     uint totalIterations = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
     totalIterations = totalIterations > orbitLength.z ? totalIterations : orbitLength.z;
 
     //getIndividualState(in uint CellID, out vec2 coordinates, out uint phase, out uint remainingIterations)
-    vec2 lastPosition = vec2(0);
-    uint phase = 0;
-    uint remainingIterations;
-    if(iterationChanged == 0) //same iteration as last time, reuse old state.
-    {
-        getIndividualState(uniqueWorkerID, lastPosition, phase, remainingIterations);
-    }
-    else
-    {
-        remainingIterations = totalIterations;
-    }
-
+    vec2 lastPosition;
+    uint phase;
+    uint doneIterations;
+    uint orbitNumber;
+    vec2 offset;
+    //getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
+    getIndividualState(uniqueWorkerID, offset, lastPosition, phase, orbitNumber, doneIterations);
     if(phase == 0)
+    {
+        //new orbit:
+        uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
+        uint yDecoupler = orbitNumber;
+        offset = getStartValue(seed, yDecoupler);
+        lastPosition = vec2(0);
+        phase = 1;
+        doneIterations = 0;
+    }
+    if(phase == 1)
     {
         //check if this orbit is going to be drawn
         bool result;
-        if(isGoingToBeDrawn(offset, lastPosition, remainingIterations, result))
+        if(isGoingToBeDrawn(offset,totalIterations, lastPosition, doneIterations , result))
         {
-            //done, proceed to phase 1 or 2, based on result.
-            phase = result ? 1 : 2;
-            lastPosition = vec2(0);
-            remainingIterations = totalIterations;
+            if(result)
+            {
+                //on to step 2: drawing
+                phase = 2;
+                lastPosition = vec2(0);
+                doneIterations = 0;
+            }
+            else
+            {
+                //back to step 0
+                ++orbitNumber;
+                phase = 0;
+            }
         }
     }
-    else if(phase == 1) //else if. We allow less than the user set iterations per dispatch, but never more.
+    else if(phase == 2)
     {
-        //draw orbit
-        if(drawOrbit(offset, totalIterations, lastPosition, remainingIterations))
+        if(drawOrbit(offset, totalIterations, lastPosition, doneIterations))
         {
-            //done.
-            phase = 2;
+            ++orbitNumber;
+            phase = 0;
         }
-    }
-    if(phase == 2)
-    {
-        //done.
-        remainingIterations = 0;
     }
 
 
-    setIndividualState(uniqueWorkerID, lastPosition, phase, remainingIterations);
-    atomicOr(accumulatedState, uint(phase != 2));
+    setIndividualState(uniqueWorkerID, offset, lastPosition, phase, orbitNumber, doneIterations);
 }
