@@ -196,7 +196,7 @@ int main(int argc, char * argv[])
             const auto pidOutput{pid.Update(frameDuration,error)};
             iterationsPerFrame = std::max(1,static_cast<int>(pidOutput));
 
-            std::cout << iterationsPerFrame << " " << pidOutput << std::endl;
+            //std::cout << iterationsPerFrame << " " << pidOutput << std::endl;
         }
 	}
 
