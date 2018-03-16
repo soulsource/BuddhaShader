@@ -169,23 +169,6 @@ bool isInMainBulb(vec2 v)
     return sqrRadius<0.062499999;
 }
 
-vec2 getStartValue(uint seed, uint yDecoupler)
-{
-    uint hash = seed;
-
-    for(uint i = 0; i < 5;++i)
-    {
-        float x = hash1(hash,hash);
-        hash = (hash ^ intHash(yDecoupler));
-        float y = hash1(hash,hash);
-        vec2 random = vec2(x,y);
-        vec2 point = vec2(random.x * 3.5-2.5,random.y*1.55);
-        if(!(isInMainBulb(point) || isInMainCardioid(point)))
-            return point;
-    }
-    return vec2(0);
-}
-
 bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations, out bool result)
 {
     uint endCount = doneIterations + iterationsLeftThisFrame > totalIterations ? totalIterations : doneIterations + iterationsLeftThisFrame;
@@ -253,12 +236,27 @@ void main() {
         if(phase == 0)
         {
             //new orbit:
+            //we know that iterationsLeftToDo is at least 1 by the while condition.
+            --iterationsLeftToDo; //count this as 1 iteration.
             uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
             uint yDecoupler = orbitNumber;
-            offset = getStartValue(seed, yDecoupler);
-            lastPosition = vec2(0);
-            phase = 1;
-            doneIterations = 0;
+            float x = hash1(seed,seed);
+            seed = (seed ^ intHash(orbitNumber));
+            float y = hash1(seed,seed);
+            vec2 random = vec2(x,y);
+            offset = vec2(random.x * 3.5-2.5,random.y*1.55);
+            if(isInMainBulb(offset) || isInMainCardioid(offset))
+            {
+                // do not waste time drawing this orbit
+                ++orbitNumber;
+            }
+            else
+            {
+                //cool orbit!
+                lastPosition = vec2(0);
+                phase = 1;
+                doneIterations = 0;
+            }
         }
         if(phase == 1)
         {
