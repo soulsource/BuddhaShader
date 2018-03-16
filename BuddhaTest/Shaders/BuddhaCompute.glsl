@@ -193,8 +193,7 @@ void main() {
     uvec3 totalWorkersPerDimension = gl_WorkGroupSize * gl_NumWorkGroups;
     uint totalWorkers = totalWorkersPerDimension.x*totalWorkersPerDimension.y*totalWorkersPerDimension.z;
 
-    //TODO: Check this once I've had some sleep. Anyhow, I'm using 1D, so y and z components globalInfocationID should be zero anyhow.
-    uint seed = iterationCount * totalWorkers + gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x + totalWorkersPerDimension.y);
+    uint seed = iterationCount * totalWorkers + gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x * totalWorkersPerDimension.y);
     uint yDecoupler = iterationCount;
     vec2 offset = getStartValue(seed, yDecoupler);
 
