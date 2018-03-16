@@ -195,13 +195,13 @@ bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVa
         if(dot(lastVal,lastVal) > 4.0)
         {
             result = true;
-            iterationsLeftThisFrame -= i+1-doneIterations;
+            iterationsLeftThisFrame -= ((i+1)-doneIterations);
             doneIterations = i+1;
             return true;
         }
     }
+    iterationsLeftThisFrame -= (endCount - doneIterations);
     doneIterations = endCount;
-    iterationsLeftThisFrame = 0;
     result = false;
     return endCount == totalIterations;
 }
@@ -214,7 +214,7 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
         lastVal = compSqr(lastVal) + offset;
         if(dot(lastVal,lastVal) > 20.0)
         {
-            iterationsLeftThisFrame -= i+1-doneIterations;
+            iterationsLeftThisFrame -= ((i+1)-doneIterations);
             doneIterations = i+1;
             return true; //done.
         }
@@ -223,21 +223,21 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
             addToColorAt(lastVal,uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
         }
     }
+    iterationsLeftThisFrame -= (endCount - doneIterations);
     doneIterations = endCount;
-    iterationsLeftThisFrame = 0;
     return endCount == totalIterations;
 }
 
 void main() {
     //we need to know how many total work groups are running this iteration
 
-    uvec3 totalWorkersPerDimension = gl_WorkGroupSize * gl_NumWorkGroups;
-    uint totalWorkers = totalWorkersPerDimension.x*totalWorkersPerDimension.y*totalWorkersPerDimension.z;
+    const uvec3 totalWorkersPerDimension = gl_WorkGroupSize * gl_NumWorkGroups;
+    const uint totalWorkers = totalWorkersPerDimension.x*totalWorkersPerDimension.y*totalWorkersPerDimension.z;
 
     const uint uniqueWorkerID = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x * totalWorkersPerDimension.y);
 
-    uint totalIterations = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
-    totalIterations = totalIterations > orbitLength.z ? totalIterations : orbitLength.z;
+    const uint _totalIterations = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
+    const uint totalIterations = _totalIterations > orbitLength.z ? _totalIterations : orbitLength.z;
 
     //getIndividualState(in uint CellID, out vec2 coordinates, out uint phase, out uint remainingIterations)
     vec2 lastPosition;
@@ -281,7 +281,7 @@ void main() {
                 }
             }
         }
-        else if(phase == 2)
+        if(phase == 2)
         {
             if(drawOrbit(offset, totalIterations, lastPosition, iterationsLeftToDo, doneIterations))
             {
