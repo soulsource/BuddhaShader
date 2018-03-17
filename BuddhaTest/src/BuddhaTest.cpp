@@ -128,7 +128,7 @@ int main(int argc, char * argv[])
     GLuint stateBuffer;
     glGenBuffers(1,&stateBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER,stateBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 4*(5*workersPerFrame),nullptr,GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 4*(7*workersPerFrame),nullptr,GL_DYNAMIC_COPY);
     glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, stateBuffer);
 
