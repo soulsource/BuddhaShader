@@ -208,7 +208,7 @@ vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, cons
 {
     uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
     float x = hash1(seed,seed);
-    seed = (seed ^ intHash(orbitNumber));
+    seed = (seed ^ (intHash(orbitNumber+totalWorkers)));
     float y = hash1(seed,seed);
     vec2 random = vec2(x,y);
     return vec2(random.x * 3.5-2.5,random.y*1.55);
