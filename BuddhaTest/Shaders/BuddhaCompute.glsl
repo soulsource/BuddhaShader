@@ -70,7 +70,7 @@ float hash1(uint seed, out uint hash)
 
 vec2 compSqr(in vec2 v)
 {
-        return vec2(v.x*v.x-v.y*v.y, 2.0*v.x*v.y);
+    return vec2(v.x*v.x-v.y*v.y, 2.0*v.x*v.y);
 }
 
 bool isInMainCardioid(vec2 v)
