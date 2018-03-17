@@ -8,7 +8,7 @@
 
 void error_callback(int error, const char* description)
 {
-	std::cerr << "Error: " << description << std::endl;
+    std::cerr << "Error: " << description << std::endl;
 }
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -27,33 +27,33 @@ int main(int argc, char * argv[])
 
     unsigned int bufferHeight = settings.imageHeight/2;
 
-	GLFWwindow* window;
+    GLFWwindow* window;
 
-	/* Initialize the library */
-	if (!glfwInit())
-		return -1;
+    /* Initialize the library */
+    if (!glfwInit())
+        return -1;
 
-	glfwSetErrorCallback(error_callback);
+    glfwSetErrorCallback(error_callback);
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	/* Create a windowed mode window and its OpenGL context */
+    /* Create a windowed mode window and its OpenGL context */
     window = glfwCreateWindow(settings.windowWidth, settings.windowHeight, "Buddhabrot", NULL, NULL);
-	if (!window)
-	{
-		std::cerr << "Failed to create OpenGL 4.3 core context. We do not support compatibility contexts." << std::endl;
-		glfwTerminate();
-		return -1;
-	}
+    if (!window)
+    {
+        std::cerr << "Failed to create OpenGL 4.3 core context. We do not support compatibility contexts." << std::endl;
+        glfwTerminate();
+        return -1;
+    }
 
     //register callback on window resize:
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-	/* Make the window's context current */
-	glfwMakeContextCurrent(window);
-	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+    /* Make the window's context current */
+    glfwMakeContextCurrent(window);
+    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
 
     //disable vsync
     glfwSwapInterval(0);
@@ -94,21 +94,21 @@ int main(int argc, char * argv[])
         return 1;
     }
 
-	GLuint VertexArrayID;
-	glGenVertexArrays(1, &VertexArrayID);
-	glBindVertexArray(VertexArrayID);
+    GLuint VertexArrayID;
+    glGenVertexArrays(1, &VertexArrayID);
+    glBindVertexArray(VertexArrayID);
 
-	const GLfloat g_vertex_buffer_data[] = {
-		-1.0f, -1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		1.0f, 1.0f, 0.0f
-	};
+    const GLfloat g_vertex_buffer_data[] = {
+        -1.0f, -1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+        1.0f, 1.0f, 0.0f
+    };
 
-	GLuint vertexbuffer;
-	glGenBuffers(1, &vertexbuffer);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+    GLuint vertexbuffer;
+    glGenBuffers(1, &vertexbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
 
     GLuint drawBuffer[3];
@@ -153,11 +153,11 @@ int main(int argc, char * argv[])
     Helpers::PIDController<float, std::chrono::high_resolution_clock::time_point::rep> pid{0.0f,0.0f,1e-4f};
     const uint32_t targetFrameDuration{1000000/settings.targetFrameRate};
 
-	/* Loop until the user closes the window */
-	while (!glfwWindowShouldClose(window))
-	{
+    /* Loop until the user closes the window */
+    while (!glfwWindowShouldClose(window))
+    {
         auto frameStart{std::chrono::high_resolution_clock::now()};
-		//let the compute shader do something
+        //let the compute shader do something
         glUseProgram(ComputeShader);
         glUniform1ui(iterationsPerDispatchHandle, iterationsPerFrame);
         glDispatchCompute(settings.globalWorkGroupSizeX, settings.globalWorkGroupSizeY, settings.globalWorkGroupSizeZ);
@@ -165,29 +165,29 @@ int main(int argc, char * argv[])
         //before reading the values in the ssbo, we need a memory barrier:
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT); //I hope this is the correct (and only required) bit
 
-		/* Render here */
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glUseProgram(VertexAndFragmentShaders);
-		
-        glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-        // Draw the triangle strip!
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // Triangle strip with 4 vertices -> quad.
-		glDisableVertexAttribArray(0);
+        /* Render here */
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glUseProgram(VertexAndFragmentShaders);
 
-		/* Swap front and back buffers */
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+        glVertexAttribPointer(
+                    0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+                    3,                  // size
+                    GL_FLOAT,           // type
+                    GL_FALSE,           // normalized?
+                    0,                  // stride
+                    (void*)0            // array buffer offset
+                    );
+        // Draw the triangle strip!
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4); // Triangle strip with 4 vertices -> quad.
+        glDisableVertexAttribArray(0);
+
+        /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
-		/* Poll for and process events */
-		glfwPollEvents();
+        /* Poll for and process events */
+        glfwPollEvents();
         auto frameStop{std::chrono::high_resolution_clock::now()};
         const auto dur{std::chrono::duration_cast<std::chrono::microseconds>(frameStop-frameStart)};
         auto frameDuration{dur.count()};
@@ -199,7 +199,7 @@ int main(int argc, char * argv[])
 
             //std::cout << iterationsPerFrame << " " << pidOutput << std::endl;
         }
-	}
+    }
 
     if(!settings.pngFilename.empty())
     {
@@ -225,6 +225,6 @@ int main(int argc, char * argv[])
     glDeleteBuffers(3,drawBuffer);
     glDeleteBuffers(1,&stateBuffer);
 
-	glfwTerminate();
-	return 0;
+    glfwTerminate();
+    return 0;
 }
