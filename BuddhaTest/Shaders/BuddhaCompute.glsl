@@ -14,9 +14,18 @@ layout(std430, binding=4) restrict buffer renderedDataBlue
 {
     restrict uint counts_SSBOBlue[];
 };
+
+struct individualData
+{
+    uint phase;
+    uint orbitNumber;
+    uint doneIterations;
+    vec2 lastPosition;
+};
+
 layout(std430, binding=5) restrict buffer statusBuffer
 {
-    restrict uint individualState[];
+    restrict individualData state[];
 };
 
 uniform uint width;
@@ -25,29 +34,6 @@ uniform uint height;
 uniform uvec3 orbitLength;
 
 uniform uint iterationsPerDispatch;
-
-void getIndividualState(in uint CellID, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
-{
-    uint startIndex = 5*CellID;
-    uint x = individualState[startIndex];
-    uint y = individualState[startIndex+1];
-    phase = individualState[startIndex+2];
-    orbitNumber = individualState[startIndex+3];
-    doneIterations = individualState[startIndex+4];
-    coordinates = vec2(uintBitsToFloat(x),uintBitsToFloat(y));
-}
-
-void setIndividualState(in uint CellID, in vec2 coordinates, in uint phase, in uint orbitNumber, in uint doneIterations)
-{
-    uint startIndex = 5*CellID;
-    uint x=floatBitsToUint(coordinates.x);
-    uint y=floatBitsToUint(coordinates.y);
-    atomicExchange(individualState[startIndex],x);
-    atomicExchange(individualState[startIndex+1],y);
-    atomicExchange(individualState[startIndex+2],phase);
-    atomicExchange(individualState[startIndex+3],orbitNumber);
-    atomicExchange(individualState[startIndex+4],doneIterations);
-}
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
@@ -225,69 +211,59 @@ void main() {
     const uint _totalIterations = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
     const uint totalIterations = _totalIterations > orbitLength.z ? _totalIterations : orbitLength.z;
 
-    //getIndividualState(in uint CellID, out vec2 coordinates, out uint phase, out uint remainingIterations)
-    vec2 lastPosition;
-    uint phase;
-    uint doneIterations;
-    uint orbitNumber;
-
     //getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
-    getIndividualState(uniqueWorkerID, lastPosition, phase, orbitNumber, doneIterations);
     uint iterationsLeftToDo = iterationsPerDispatch;
-    vec2 offset = getCurrentOrbitOffset(orbitNumber, totalWorkers, uniqueWorkerID);
+    vec2 offset = getCurrentOrbitOffset(state[uniqueWorkerID].orbitNumber, totalWorkers, uniqueWorkerID);
 
     while(iterationsLeftToDo != 0)
     {
-        if(phase == 0)
+        if(state[uniqueWorkerID].phase == 0)
         {
             //new orbit:
             //we know that iterationsLeftToDo is at least 1 by the while condition.
             --iterationsLeftToDo; //count this as 1 iteration.
-            offset = getCurrentOrbitOffset(orbitNumber, totalWorkers, uniqueWorkerID);
+            offset = getCurrentOrbitOffset(state[uniqueWorkerID].orbitNumber, totalWorkers, uniqueWorkerID);
             if(isInMainBulb(offset) || isInMainCardioid(offset))
             {
                 // do not waste time drawing this orbit
-                ++orbitNumber;
+                ++state[uniqueWorkerID].orbitNumber;
             }
             else
             {
                 //cool orbit!
-                lastPosition = vec2(0);
-                phase = 1;
-                doneIterations = 0;
+                state[uniqueWorkerID].lastPosition = vec2(0);
+                state[uniqueWorkerID].phase = 1;
+                state[uniqueWorkerID].doneIterations = 0;
             }
         }
-        if(phase == 1)
+        if(state[uniqueWorkerID].phase == 1)
         {
             //check if this orbit is going to be drawn
             bool result;
-            if(isGoingToBeDrawn(offset,totalIterations, lastPosition, iterationsLeftToDo, doneIterations , result))
+            if(isGoingToBeDrawn(offset,totalIterations, state[uniqueWorkerID].lastPosition, iterationsLeftToDo, state[uniqueWorkerID].doneIterations , result))
             {
                 if(result)
                 {
                     //on to step 2: drawing
-                    phase = 2;
-                    lastPosition = vec2(0);
-                    doneIterations = 0;
+                    state[uniqueWorkerID].phase = 2;
+                    state[uniqueWorkerID].lastPosition = vec2(0);
+                    state[uniqueWorkerID].doneIterations = 0;
                 }
                 else
                 {
                     //back to step 0
-                    ++orbitNumber;
-                    phase = 0;
+                    ++state[uniqueWorkerID].orbitNumber;
+                    state[uniqueWorkerID].phase = 0;
                 }
             }
         }
-        if(phase == 2)
+        if(state[uniqueWorkerID].phase == 2)
         {
-            if(drawOrbit(offset, totalIterations, lastPosition, iterationsLeftToDo, doneIterations))
+            if(drawOrbit(offset, totalIterations, state[uniqueWorkerID].lastPosition, iterationsLeftToDo, state[uniqueWorkerID].doneIterations))
             {
-                ++orbitNumber;
-                phase = 0;
+                ++state[uniqueWorkerID].orbitNumber;
+                state[uniqueWorkerID].phase = 0;
             }
         }
     }
-
-
-    setIndividualState(uniqueWorkerID, lastPosition, phase, orbitNumber, doneIterations);
 }
