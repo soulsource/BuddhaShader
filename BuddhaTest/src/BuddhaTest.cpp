@@ -128,15 +128,20 @@ int main(int argc, char * argv[])
     //so we can get away with being more lenient and allowing the compiler to choose layout without much extra work.
     //We need to query the size for allocation though.
     GLuint stateBufferIndex = glGetProgramResourceIndex(ComputeShader,GL_SHADER_STORAGE_BLOCK,"statusBuffer");
-    GLint requiredStateBufferSizePerWorker;
+    GLint bufferAlignment;
     GLenum t = GL_BUFFER_DATA_SIZE;
-    glGetProgramResourceiv(ComputeShader,GL_SHADER_STORAGE_BLOCK,stateBufferIndex,1,&t,1,nullptr,&requiredStateBufferSizePerWorker);
+    glGetProgramResourceiv(ComputeShader,GL_SHADER_STORAGE_BLOCK,stateBufferIndex,1,&t,1,nullptr,&bufferAlignment);
+    GLuint stateStructIndex = glGetProgramResourceIndex(ComputeShader,GL_BUFFER_VARIABLE,"state[0].phase");
+    GLint requiredStateBufferSizePerWorker;
+    t = GL_TOP_LEVEL_ARRAY_STRIDE;
+    glGetProgramResourceiv(ComputeShader,GL_BUFFER_VARIABLE,stateBufferIndex,1,&t,1,nullptr,&requiredStateBufferSizePerWorker);
 
     const uint32_t workersPerFrame = settings.globalWorkGroupSizeX*settings.globalWorkGroupSizeY*settings.globalWorkGroupSizeZ*settings.localWorkgroupSizeX*settings.localWorkgroupSizeY*settings.localWorkgroupSizeZ;
+    auto requiredStateMemory = ((requiredStateBufferSizePerWorker*workersPerFrame + bufferAlignment -1)/bufferAlignment) * bufferAlignment;
     GLuint stateBuffer;
     glGenBuffers(1,&stateBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER,stateBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, requiredStateBufferSizePerWorker*workersPerFrame,nullptr,GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, (requiredStateMemory),nullptr,GL_DYNAMIC_COPY);
     glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, stateBuffer);
 
