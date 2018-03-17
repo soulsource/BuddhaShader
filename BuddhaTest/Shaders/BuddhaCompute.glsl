@@ -204,10 +204,9 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
     return endCount == totalIterations;
 }
 
-vec2 getCurrentOrbitOffset(uint orbitNumber, uint totalWorkers, uint uniqueWorkerID)
+vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, const uint uniqueWorkerID)
 {
     uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
-    uint yDecoupler = orbitNumber;
     float x = hash1(seed,seed);
     seed = (seed ^ intHash(orbitNumber));
     float y = hash1(seed,seed);
