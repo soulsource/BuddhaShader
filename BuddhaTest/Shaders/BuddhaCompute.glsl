@@ -26,34 +26,27 @@ uniform uvec3 orbitLength;
 
 uniform uint iterationsPerDispatch;
 
-void getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
+void getIndividualState(in uint CellID, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
 {
-    uint startIndex = 7*CellID;
+    uint startIndex = 5*CellID;
     uint x = individualState[startIndex];
     uint y = individualState[startIndex+1];
     phase = individualState[startIndex+2];
     orbitNumber = individualState[startIndex+3];
     doneIterations = individualState[startIndex+4];
-    uint offx =  individualState[startIndex+5];
-    uint offy =  individualState[startIndex+6];
     coordinates = vec2(uintBitsToFloat(x),uintBitsToFloat(y));
-    offset = vec2(uintBitsToFloat(offx),uintBitsToFloat(offy));
 }
 
-void setIndividualState(in uint CellID, in vec2 offset, in vec2 coordinates, in uint phase, in uint orbitNumber, in uint doneIterations)
+void setIndividualState(in uint CellID, in vec2 coordinates, in uint phase, in uint orbitNumber, in uint doneIterations)
 {
-    uint startIndex = 7*CellID;
+    uint startIndex = 5*CellID;
     uint x=floatBitsToUint(coordinates.x);
     uint y=floatBitsToUint(coordinates.y);
-    uint offx = floatBitsToUint(offset.x);
-    uint offy = floatBitsToUint(offset.y);
     atomicExchange(individualState[startIndex],x);
     atomicExchange(individualState[startIndex+1],y);
     atomicExchange(individualState[startIndex+2],phase);
     atomicExchange(individualState[startIndex+3],orbitNumber);
     atomicExchange(individualState[startIndex+4],doneIterations);
-    atomicExchange(individualState[startIndex+5],offx);
-    atomicExchange(individualState[startIndex+6],offy);
 }
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
@@ -211,6 +204,17 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
     return endCount == totalIterations;
 }
 
+vec2 getCurrentOrbitOffset(uint orbitNumber, uint totalWorkers, uint uniqueWorkerID)
+{
+    uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
+    uint yDecoupler = orbitNumber;
+    float x = hash1(seed,seed);
+    seed = (seed ^ intHash(orbitNumber));
+    float y = hash1(seed,seed);
+    vec2 random = vec2(x,y);
+    return vec2(random.x * 3.5-2.5,random.y*1.55);
+}
+
 void main() {
     //we need to know how many total work groups are running this iteration
 
@@ -227,10 +231,12 @@ void main() {
     uint phase;
     uint doneIterations;
     uint orbitNumber;
-    vec2 offset;
+
     //getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
-    getIndividualState(uniqueWorkerID, offset, lastPosition, phase, orbitNumber, doneIterations);
+    getIndividualState(uniqueWorkerID, lastPosition, phase, orbitNumber, doneIterations);
     uint iterationsLeftToDo = iterationsPerDispatch;
+    vec2 offset = getCurrentOrbitOffset(orbitNumber, totalWorkers, uniqueWorkerID);
+
     while(iterationsLeftToDo != 0)
     {
         if(phase == 0)
@@ -238,13 +244,7 @@ void main() {
             //new orbit:
             //we know that iterationsLeftToDo is at least 1 by the while condition.
             --iterationsLeftToDo; //count this as 1 iteration.
-            uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
-            uint yDecoupler = orbitNumber;
-            float x = hash1(seed,seed);
-            seed = (seed ^ intHash(orbitNumber));
-            float y = hash1(seed,seed);
-            vec2 random = vec2(x,y);
-            offset = vec2(random.x * 3.5-2.5,random.y*1.55);
+            offset = getCurrentOrbitOffset(orbitNumber, totalWorkers, uniqueWorkerID);
             if(isInMainBulb(offset) || isInMainCardioid(offset))
             {
                 // do not waste time drawing this orbit
@@ -290,5 +290,5 @@ void main() {
     }
 
 
-    setIndividualState(uniqueWorkerID, offset, lastPosition, phase, orbitNumber, doneIterations);
+    setIndividualState(uniqueWorkerID, lastPosition, phase, orbitNumber, doneIterations);
 }
