@@ -38,12 +38,12 @@ namespace Helpers
         unsigned int orbitLengthGreen = 100;
         unsigned int orbitLengthBlue = 1000;
 
-        unsigned int localWorkgroupSizeX = 1024;
-        unsigned int localWorkgroupSizeY = 1;
+        unsigned int localWorkgroupSizeX = 16;
+        unsigned int localWorkgroupSizeY = 16;
         unsigned int localWorkgroupSizeZ = 1;
 
-        unsigned int globalWorkGroupSizeX = 1024;
-        unsigned int globalWorkGroupSizeY = 1;
+        unsigned int globalWorkGroupSizeX = 64;
+        unsigned int globalWorkGroupSizeY = 64;
         unsigned int globalWorkGroupSizeZ = 1;
 
         unsigned int targetFrameRate = 60;
