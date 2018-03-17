@@ -15,6 +15,7 @@ layout(std430, binding=4) restrict buffer renderedDataBlue
     restrict uint counts_SSBOBlue[];
 };
 
+layout(packed)
 struct individualData
 {
     uint phase;
@@ -23,7 +24,7 @@ struct individualData
     vec2 lastPosition;
 };
 
-layout(std430, binding=5) restrict buffer statusBuffer
+layout(packed, binding=5) restrict buffer statusBuffer
 {
     restrict individualData state[];
 };

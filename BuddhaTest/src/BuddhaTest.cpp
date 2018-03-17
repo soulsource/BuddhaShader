@@ -124,11 +124,19 @@ int main(int argc, char * argv[])
     }
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+    //the state buffer is special. While making each entry 8 bytes large and using std430 layout, the data is never read back,
+    //so we can get away with being more lenient and allowing the compiler to choose layout without much extra work.
+    //We need to query the size for allocation though.
+    GLuint stateBufferIndex = glGetProgramResourceIndex(ComputeShader,GL_SHADER_STORAGE_BLOCK,"statusBuffer");
+    GLint requiredStateBufferSizePerWorker;
+    GLenum t = GL_BUFFER_DATA_SIZE;
+    glGetProgramResourceiv(ComputeShader,GL_SHADER_STORAGE_BLOCK,stateBufferIndex,1,&t,1,nullptr,&requiredStateBufferSizePerWorker);
+
     const uint32_t workersPerFrame = settings.globalWorkGroupSizeX*settings.globalWorkGroupSizeY*settings.globalWorkGroupSizeZ*settings.localWorkgroupSizeX*settings.localWorkgroupSizeY*settings.localWorkgroupSizeZ;
     GLuint stateBuffer;
     glGenBuffers(1,&stateBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER,stateBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 4*(7*workersPerFrame),nullptr,GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, requiredStateBufferSizePerWorker*workersPerFrame,nullptr,GL_DYNAMIC_COPY);
     glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, stateBuffer);
 
