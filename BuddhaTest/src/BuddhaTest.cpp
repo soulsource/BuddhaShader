@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <algorithm>
 
 void error_callback(int error, const char* description)
 {
@@ -149,7 +150,7 @@ int main(int argc, char * argv[])
 
     uint32_t iterationsPerFrame = 1;
 
-    Helpers::PIDController<float, uint32_t> pid{0.0f,0.0f,1e-8f};
+    Helpers::PIDController<float, std::chrono::high_resolution_clock::time_point::rep> pid{0.0f,0.0f,1e-8f};
     const uint32_t targetFrameDuration{1000000/settings.targetFrameRate};
 
 	/* Loop until the user closes the window */
@@ -193,7 +194,7 @@ int main(int argc, char * argv[])
         if(frameDuration > 0)
         {
             const auto error{targetFrameDuration - frameDuration};
-            const auto pidOutput{pid.Update(frameDuration,error)};
+            const auto pidOutput{pid.Update((frameDuration),float(error))};
             iterationsPerFrame = std::max(1,static_cast<int>(pidOutput));
 
             //std::cout << iterationsPerFrame << " " << pidOutput << std::endl;
@@ -212,7 +213,7 @@ int main(int argc, char * argv[])
 
         //too lazy to change WriteOutputPng...
         std::vector<uint32_t> combinedBuffer(3*pixelCount);
-        for(int i=0;i<3*pixelCount;++i)
+        for(uint32_t i=0;i<3*pixelCount;++i)
         {
             combinedBuffer[i] = readBackBuffers[i%3][i/3];
         }
