@@ -15,7 +15,6 @@ layout(std430, binding=4) restrict buffer renderedDataBlue
     restrict uint counts_SSBOBlue[];
 };
 
-layout(packed)
 struct individualData
 {
     uint phase;
