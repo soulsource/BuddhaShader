@@ -219,7 +219,7 @@ int main(int argc, char * argv[])
         if(settings.printDebugOutput != 0 && totalIterationCount/maxOrbitlength > lastMessage)
         {
             lastMessage = totalIterationCount/maxOrbitlength;
-            const auto ctime = std::chrono::high_resolution_clock::to_time_t(frameStop);
+            const auto ctime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
             std::cout << "Iteration count next frame: " << iterationsPerFrame << std::endl;
             std::cout << std::put_time(std::localtime(&ctime),"%X") << ": Iteration count per worker higher than: " << lastMessage*maxOrbitlength << std::endl;
             std::cout << std::put_time(std::localtime(&ctime),"%X") << ": Total iteration count higher than: " << lastMessage*maxOrbitlength*workersPerFrame << std::endl;
