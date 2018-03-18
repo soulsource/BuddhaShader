@@ -31,7 +31,7 @@ layout(packed, binding=5) restrict buffer statusBuffer
 uniform uint width;
 uniform uint height;
 
-uniform uvec3 orbitLength;
+uniform uvec4 orbitLength;
 
 uniform uint iterationsPerDispatch;
 
@@ -156,9 +156,9 @@ bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVa
         lastVal = compSqr(lastVal) + offset;
         if(dot(lastVal,lastVal) > 4.0)
         {
-            result = true;
             iterationsLeftThisFrame -= ((i+1)-doneIterations);
             doneIterations = i+1;
+            result = orbitLength.w < doneIterations;
             return true;
         }
     }

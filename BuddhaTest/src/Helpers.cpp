@@ -323,6 +323,7 @@ namespace Helpers
             {"--imageHeight",&imageHeight},
             {"--windowWidth",&windowWidth},
             {"--windowHeight",&windowHeight},
+            {"--orbitLengthSkip",&orbitLengthSkip},
             {"--orbitLengthRed",&orbitLengthRed},
             {"--orbitLengthGreen",&orbitLengthGreen},
             {"--orbitLengthBlue",&orbitLengthBlue},
@@ -336,7 +337,8 @@ namespace Helpers
             {"--imageGamma",&pngGamma},
             {"--imageColorScale",&pngColorScale},
             {"--output", &pngFilename},
-            {"--ignoreMaxBufferSize", &ignoreMaxBufferSize}
+            {"--ignoreMaxBufferSize", &ignoreMaxBufferSize},
+            {"--printDebugOutput", &printDebugOutput}
         };
 
         for(int i=1; i < argc;++i)
@@ -353,6 +355,7 @@ namespace Helpers
                              "--imageColorScale [float] : Image brightness is scaled by the brightest pixel. The result is multiplied by this value. 2.0 by default, as 1.0 leaves very little dynamic range." << std::endl <<
                              "--windowWidth [integer] : Width of the preview window. 1024 by default." << std::endl <<
                              "--windowHeight [integer] : Height of the preview window. 576 by default." << std::endl <<
+                             "--orbitLengthSkip [integer] : Minimum lengths for escaping orbits to be drawn at all. Default 0." << std::endl <<
                              "--orbitLengthRed [integer] : Maximum number of iterations for escaping orbits to color red. 10 by default." << std::endl <<
                              "--orbitLengthGreen [integer] : Maximum number of iterations for escaping orbits to color green. 100 by default." << std::endl <<
                              "--orbitLengthBlue [integer] : Maximum number of iterations for escaping orbits to color blue. 1000 by default." << std::endl <<
@@ -364,6 +367,7 @@ namespace Helpers
                              "--globalWorkgroupSizeY [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 64." << std::endl <<
                              "--globalWorkgroupSizeZ [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl <<
                              "--targetFrameRate [integer] : The number of iterations per frame will dynamically adjust to approximately reach this framerate. Default: 60." << std::endl <<
+                             "--printDebugOutput [0,1] : If set to 1, every orbitLength a message will be printed to stdout. Default 0." << std::endl <<
                              "--ignoreMaxBufferSize [0,1] : If set to 1, a failed maximum buffer size check is not treated as error. Some graphics drivers report lower values than their absolute limit. Do this on your own risk, though." << std::endl;
                 return false;
             }

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <chrono>
+#include <iomanip>
 #include <algorithm>
 
 void error_callback(int error, const char* description)
@@ -150,7 +151,7 @@ int main(int argc, char * argv[])
     GLint widthUniformComputeHandle = glGetUniformLocation(ComputeShader, "width");
     GLint heightUniformComputeHandle = glGetUniformLocation(ComputeShader, "height");
     GLint iterationsPerDispatchHandle = glGetUniformLocation(ComputeShader, "iterationsPerDispatch");
-    glUniform3ui(orbitLengthUniformHandle,settings.orbitLengthRed,settings.orbitLengthGreen,settings.orbitLengthBlue);
+    glUniform4ui(orbitLengthUniformHandle,settings.orbitLengthRed,settings.orbitLengthGreen,settings.orbitLengthBlue,settings.orbitLengthSkip);
     glUniform1ui(widthUniformComputeHandle, settings.imageWidth);
     glUniform1ui(heightUniformComputeHandle, bufferHeight);
 
@@ -166,10 +167,15 @@ int main(int argc, char * argv[])
     Helpers::PIDController<float, std::chrono::high_resolution_clock::time_point::rep> pid{0.0f,0.0f,1e-4f};
     const uint32_t targetFrameDuration{1000000/settings.targetFrameRate};
 
+    uint64_t totalIterationCount{0};
+    uint64_t lastMessage{0};
+    const uint64_t maxOrbitlength = std::max(std::max(settings.orbitLengthBlue,settings.orbitLengthGreen),settings.orbitLengthRed);
+
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         auto frameStart{std::chrono::high_resolution_clock::now()};
+        totalIterationCount += iterationsPerFrame;
         //let the compute shader do something
         glUseProgram(ComputeShader);
         glUniform1ui(iterationsPerDispatchHandle, iterationsPerFrame);
@@ -211,6 +217,14 @@ int main(int argc, char * argv[])
             iterationsPerFrame = std::max(1,static_cast<int>(pidOutput));
 
             //std::cout << iterationsPerFrame << " " << pidOutput << std::endl;
+        }
+        if(settings.printDebugOutput != 0 && totalIterationCount/maxOrbitlength > lastMessage)
+        {
+            lastMessage = totalIterationCount/maxOrbitlength;
+            const auto ctime = std::chrono::high_resolution_clock::to_time_t(frameStop);
+            std::cout << "Iteration count next frame: " << iterationsPerFrame << std::endl;
+            std::cout << std::put_time(std::localtime(&ctime),"%X") << ": Iteration count per worker higher than: " << lastMessage*maxOrbitlength << std::endl;
+            std::cout << std::put_time(std::localtime(&ctime),"%X") << ": Total iteration count higher than: " << lastMessage*maxOrbitlength*workersPerFrame << std::endl;
         }
     }
 

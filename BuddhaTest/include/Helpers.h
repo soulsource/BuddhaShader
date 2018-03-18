@@ -34,6 +34,7 @@ namespace Helpers
         unsigned int windowWidth = 1024;
         unsigned int windowHeight = 576;
 
+        unsigned int orbitLengthSkip = 0;
         unsigned int orbitLengthRed = 10;
         unsigned int orbitLengthGreen = 100;
         unsigned int orbitLengthBlue = 1000;
@@ -53,6 +54,7 @@ namespace Helpers
         double pngColorScale = 2.0;
 
         unsigned int ignoreMaxBufferSize = 0;
+        unsigned int printDebugOutput = 0;
 
         bool CheckValidity();
         bool ParseCommandLine(int argc, char * argv[]);
