@@ -34,6 +34,7 @@ uniform uint height;
 uniform uvec4 orbitLength;
 
 uniform uint iterationsPerDispatch;
+uniform uint totalIterations;
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
@@ -202,14 +203,10 @@ vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, cons
 
 void main() {
     //we need to know how many total work groups are running this iteration
-
     const uvec3 totalWorkersPerDimension = gl_WorkGroupSize * gl_NumWorkGroups;
     const uint totalWorkers = totalWorkersPerDimension.x*totalWorkersPerDimension.y*totalWorkersPerDimension.z;
 
     const uint uniqueWorkerID = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x * totalWorkersPerDimension.y);
-
-    const uint _totalIterations = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
-    const uint totalIterations = _totalIterations > orbitLength.z ? _totalIterations : orbitLength.z;
 
     individualData state = stateArray[uniqueWorkerID];
 

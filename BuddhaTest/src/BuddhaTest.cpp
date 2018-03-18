@@ -148,12 +148,16 @@ int main(int argc, char * argv[])
 
     glUseProgram(ComputeShader);
     GLint orbitLengthUniformHandle = glGetUniformLocation(ComputeShader, "orbitLength");
+    GLint totalIterationsUniformHandle = glGetUniformLocation(ComputeShader, "totalIterations");
     GLint widthUniformComputeHandle = glGetUniformLocation(ComputeShader, "width");
     GLint heightUniformComputeHandle = glGetUniformLocation(ComputeShader, "height");
     GLint iterationsPerDispatchHandle = glGetUniformLocation(ComputeShader, "iterationsPerDispatch");
     glUniform4ui(orbitLengthUniformHandle,settings.orbitLengthRed,settings.orbitLengthGreen,settings.orbitLengthBlue,settings.orbitLengthSkip);
     glUniform1ui(widthUniformComputeHandle, settings.imageWidth);
     glUniform1ui(heightUniformComputeHandle, bufferHeight);
+
+    const uint32_t maxOrbitlength = std::max(std::max(settings.orbitLengthBlue,settings.orbitLengthGreen),settings.orbitLengthRed);
+    glUniform1ui(totalIterationsUniformHandle, maxOrbitlength);
 
     glUseProgram(VertexAndFragmentShaders);
     GLint widthUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "width");
@@ -169,7 +173,6 @@ int main(int argc, char * argv[])
 
     uint64_t totalIterationCount{0};
     uint64_t lastMessage{0};
-    const uint64_t maxOrbitlength = std::max(std::max(settings.orbitLengthBlue,settings.orbitLengthGreen),settings.orbitLengthRed);
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
