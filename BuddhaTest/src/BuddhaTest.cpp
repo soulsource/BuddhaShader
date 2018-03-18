@@ -132,10 +132,10 @@ int main(int argc, char * argv[])
     GLint bufferAlignment;
     GLenum t = GL_BUFFER_DATA_SIZE;
     glGetProgramResourceiv(ComputeShader,GL_SHADER_STORAGE_BLOCK,stateBufferIndex,1,&t,1,nullptr,&bufferAlignment);
-    GLuint stateStructIndex = glGetProgramResourceIndex(ComputeShader,GL_BUFFER_VARIABLE,"state[0].phase");
+    GLuint stateStructIndex = glGetProgramResourceIndex(ComputeShader,GL_BUFFER_VARIABLE,"stateArray[0].phase");
     GLint requiredStateBufferSizePerWorker;
     t = GL_TOP_LEVEL_ARRAY_STRIDE;
-    glGetProgramResourceiv(ComputeShader,GL_BUFFER_VARIABLE,stateBufferIndex,1,&t,1,nullptr,&requiredStateBufferSizePerWorker);
+    glGetProgramResourceiv(ComputeShader,GL_BUFFER_VARIABLE,stateStructIndex,1,&t,1,nullptr,&requiredStateBufferSizePerWorker);
 
     const uint32_t workersPerFrame = settings.globalWorkGroupSizeX*settings.globalWorkGroupSizeY*settings.globalWorkGroupSizeZ*settings.localWorkgroupSizeX*settings.localWorkgroupSizeY*settings.localWorkgroupSizeZ;
     auto requiredStateMemory = ((requiredStateBufferSizePerWorker*workersPerFrame + bufferAlignment -1)/bufferAlignment) * bufferAlignment;
@@ -228,6 +228,7 @@ int main(int argc, char * argv[])
         }
     }
 
+    //settings.pngFilename = "Don'tForgetToRemoveThisLine.png";
     if(!settings.pngFilename.empty())
     {
         glMemoryBarrier(GL_ALL_BARRIER_BITS);

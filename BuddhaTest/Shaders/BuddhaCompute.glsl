@@ -25,7 +25,7 @@ struct individualData
 
 layout(packed, binding=5) restrict buffer statusBuffer
 {
-    restrict individualData state[];
+    restrict individualData stateArray[];
 };
 
 uniform uint width;
@@ -211,59 +211,62 @@ void main() {
     const uint _totalIterations = orbitLength.x > orbitLength.y ? orbitLength.x : orbitLength.y;
     const uint totalIterations = _totalIterations > orbitLength.z ? _totalIterations : orbitLength.z;
 
+    individualData state = stateArray[uniqueWorkerID];
+
     //getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
     uint iterationsLeftToDo = iterationsPerDispatch;
-    vec2 offset = getCurrentOrbitOffset(state[uniqueWorkerID].orbitNumber, totalWorkers, uniqueWorkerID);
+    vec2 offset = getCurrentOrbitOffset(state.orbitNumber, totalWorkers, uniqueWorkerID);
 
     while(iterationsLeftToDo != 0)
     {
-        if(state[uniqueWorkerID].phase == 0)
+        if(state.phase == 0)
         {
             //new orbit:
             //we know that iterationsLeftToDo is at least 1 by the while condition.
             --iterationsLeftToDo; //count this as 1 iteration.
-            offset = getCurrentOrbitOffset(state[uniqueWorkerID].orbitNumber, totalWorkers, uniqueWorkerID);
+            offset = getCurrentOrbitOffset(state.orbitNumber, totalWorkers, uniqueWorkerID);
             if(isInMainBulb(offset) || isInMainCardioid(offset))
             {
                 // do not waste time drawing this orbit
-                ++state[uniqueWorkerID].orbitNumber;
+                ++state.orbitNumber;
             }
             else
             {
                 //cool orbit!
-                state[uniqueWorkerID].lastPosition = vec2(0);
-                state[uniqueWorkerID].phase = 1;
-                state[uniqueWorkerID].doneIterations = 0;
+                state.lastPosition = vec2(0);
+                state.phase = 1;
+                state.doneIterations = 0;
             }
         }
-        if(state[uniqueWorkerID].phase == 1)
+        if(state.phase == 1)
         {
             //check if this orbit is going to be drawn
             bool result;
-            if(isGoingToBeDrawn(offset,totalIterations, state[uniqueWorkerID].lastPosition, iterationsLeftToDo, state[uniqueWorkerID].doneIterations , result))
+            if(isGoingToBeDrawn(offset,totalIterations, state.lastPosition, iterationsLeftToDo, state.doneIterations , result))
             {
                 if(result)
                 {
                     //on to step 2: drawing
-                    state[uniqueWorkerID].phase = 2;
-                    state[uniqueWorkerID].lastPosition = vec2(0);
-                    state[uniqueWorkerID].doneIterations = 0;
+                    state.phase = 2;
+                    state.lastPosition = vec2(0);
+                    state.doneIterations = 0;
                 }
                 else
                 {
                     //back to step 0
-                    ++state[uniqueWorkerID].orbitNumber;
-                    state[uniqueWorkerID].phase = 0;
+                    ++state.orbitNumber;
+                    state.phase = 0;
                 }
             }
         }
-        if(state[uniqueWorkerID].phase == 2)
+        if(state.phase == 2)
         {
-            if(drawOrbit(offset, totalIterations, state[uniqueWorkerID].lastPosition, iterationsLeftToDo, state[uniqueWorkerID].doneIterations))
+            if(drawOrbit(offset, totalIterations, state.lastPosition, iterationsLeftToDo, state.doneIterations))
             {
-                ++state[uniqueWorkerID].orbitNumber;
-                state[uniqueWorkerID].phase = 0;
+                ++state.orbitNumber;
+                state.phase = 0;
             }
         }
     }
+    stateArray[uniqueWorkerID] = state;
 }
