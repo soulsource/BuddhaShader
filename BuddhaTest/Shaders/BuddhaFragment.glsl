@@ -6,15 +6,7 @@ out vec3 color;
 
 layout(std430, binding=2) restrict readonly buffer renderedDataRed
 {
-        restrict readonly uint counts_SSBORed[];
-};
-layout(std430, binding=3) restrict readonly buffer renderedDataGreen
-{
-        restrict readonly uint counts_SSBOGreen[];
-};
-layout(std430, binding=4) restrict readonly buffer renderedDataBlue
-{
-        restrict readonly uint counts_SSBOBlue[];
+        restrict readonly uint counts_SSBO[];
 };
 
 uniform uint width;
@@ -24,8 +16,8 @@ uvec3 getColorAt(vec2 fragCoord)
 {
     uint xIndex = uint(max(0.0,(fragCoord.x+1.0)*0.5*width));
     uint yIndex = uint(max(0.0,abs(fragCoord.y)*height));
-    uint firstIndex = (xIndex + yIndex * width);
-    return uvec3(counts_SSBORed[firstIndex],counts_SSBOGreen[firstIndex],counts_SSBOBlue[firstIndex]);
+    uint firstIndex = 3*(xIndex + yIndex * width);
+    return uvec3(counts_SSBO[firstIndex],counts_SSBO[firstIndex+1],counts_SSBO[firstIndex+2]);
 }
 
 void main(){

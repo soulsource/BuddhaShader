@@ -264,9 +264,9 @@ namespace Helpers
         }
         int maxSSBOSize;
         glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE,&maxSSBOSize);
-        if((static_cast<unsigned long>(imageWidth) * static_cast<unsigned long>(imageHeight)) > static_cast<unsigned long>(maxSSBOSize)/2) //divided by 2, as we have 4 bytes per int, but only half the image height
+        if((static_cast<unsigned long>(imageWidth) * static_cast<unsigned long>(imageHeight)) > static_cast<unsigned long>(maxSSBOSize)/6) //divided by 3*2, as we have three colors per pixel, 4 bytes per int, but only half the image height
         {
-            std::cerr << "Requested buffer size is larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/2 << std::endl;
+            std::cerr << "Requested buffer size is larger than maximum allowed by graphics driver. Max pixel number: " << maxSSBOSize/6 << std::endl;
             std::cerr << "You can override this limit check using the --ignoreMaxBufferSize 1 command line parameter, but doing so is your own risk." << std::endl;
             if(ignoreMaxBufferSize == 0)
                 return false;

@@ -112,17 +112,12 @@ int main(int argc, char * argv[])
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
 
 
-    GLuint drawBuffer[3];
-    glGenBuffers(3, drawBuffer);
-    for(int i=0; i < 3; ++i)
-    {
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer[i]);
-        {
-            glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * pixelCount, nullptr, GL_DYNAMIC_COPY);
-            glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
-        }
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2+i, drawBuffer[i]);
-    }
+    GLuint drawBuffer;
+    glGenBuffers(1, &drawBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 4 *3* pixelCount, nullptr, GL_DYNAMIC_COPY);
+    glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, drawBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     //the state buffer is special. While making each entry 8 bytes large and using std430 layout, the data is never read back,
@@ -235,25 +230,16 @@ int main(int argc, char * argv[])
     if(!settings.pngFilename.empty())
     {
         glMemoryBarrier(GL_ALL_BARRIER_BITS);
-        std::vector<std::vector<uint32_t>> readBackBuffers(3,std::vector<uint32_t>(pixelCount));
-        for(int i = 0; i < 3; ++i)
-        {
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer[i]);
-            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,0,4 * pixelCount,readBackBuffers[i].data());
-        }
+        std::vector<uint32_t> readBackBuffer(pixelCount*3);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,0,4 *3* pixelCount,readBackBuffer.data());
 
-        //too lazy to change WriteOutputPng...
-        std::vector<uint32_t> combinedBuffer(3*pixelCount);
-        for(uint32_t i=0;i<3*pixelCount;++i)
-        {
-            combinedBuffer[i] = readBackBuffers[i%3][i/3];
-        }
-        Helpers::WriteOutputPNG(settings.pngFilename,combinedBuffer,settings.imageWidth,bufferHeight, settings.pngGamma, settings.pngColorScale);
+        Helpers::WriteOutputPNG(settings.pngFilename,readBackBuffer,settings.imageWidth,bufferHeight, settings.pngGamma, settings.pngColorScale);
     }
 
     //a bit of cleanup
     glDeleteBuffers(1,&vertexbuffer);
-    glDeleteBuffers(3,drawBuffer);
+    glDeleteBuffers(1,&drawBuffer);
     glDeleteBuffers(1,&stateBuffer);
 
     glfwTerminate();

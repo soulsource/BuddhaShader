@@ -4,15 +4,7 @@
 
 layout(std430, binding=2) restrict buffer renderedDataRed
 {
-    restrict uint counts_SSBORed[];
-};
-layout(std430, binding=3) restrict buffer renderedDataGreen
-{
-    restrict uint counts_SSBOGreen[];
-};
-layout(std430, binding=4) restrict buffer renderedDataBlue
-{
-    restrict uint counts_SSBOBlue[];
+    restrict uint counts_SSBO[];
 };
 
 struct individualData
@@ -38,10 +30,10 @@ uniform uint totalIterations;
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
-    uint firstIndex = (cell.x + cell.y * width);
-    atomicAdd(counts_SSBORed[firstIndex],toAdd.x);
-    atomicAdd(counts_SSBOGreen[firstIndex],toAdd.y);
-    atomicAdd(counts_SSBOBlue[firstIndex],toAdd.z);
+    uint firstIndex = 3*(cell.x + cell.y * width);
+    atomicAdd(counts_SSBO[firstIndex],toAdd.x);
+    atomicAdd(counts_SSBO[firstIndex+1],toAdd.y);
+    atomicAdd(counts_SSBO[firstIndex+2],toAdd.z);
 }
 
 uvec2 getCell(vec2 complex)
