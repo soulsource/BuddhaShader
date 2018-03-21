@@ -118,7 +118,13 @@ int main(int argc, char * argv[])
     glBufferData(GL_SHADER_STORAGE_BUFFER, 4 *3* pixelCount, nullptr, GL_DYNAMIC_COPY);
     glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, drawBuffer);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    GLuint brightnessBuffer;
+    glGenBuffers(1,&brightnessBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, brightnessBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 16,nullptr, GL_DYNAMIC_COPY);
+    glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, brightnessBuffer);
 
     //the state buffer is special. While making each entry 8 bytes large and using std430 layout, the data is never read back,
     //so we can get away with being more lenient and allowing the compiler to choose layout without much extra work.

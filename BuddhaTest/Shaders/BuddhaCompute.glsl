@@ -7,6 +7,11 @@ layout(std430, binding=2) restrict buffer renderedDataRed
     restrict uint counts_SSBO[];
 };
 
+layout(std430, binding=3) restrict buffer brightnessData
+{
+    restrict uvec3 brightness;
+};
+
 struct individualData
 {
     uint phase;
@@ -28,12 +33,20 @@ uniform uvec4 orbitLength;
 uniform uint iterationsPerDispatch;
 uniform uint totalIterations;
 
+shared uvec3[gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z] brightnesses;
+
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
     uint firstIndex = 3*(cell.x + cell.y * width);
-    atomicAdd(counts_SSBO[firstIndex],toAdd.x);
-    atomicAdd(counts_SSBO[firstIndex+1],toAdd.y);
-    atomicAdd(counts_SSBO[firstIndex+2],toAdd.z);
+    uvec3 b;
+    b.x = atomicAdd(counts_SSBO[firstIndex],toAdd.x);
+    b.y = atomicAdd(counts_SSBO[firstIndex+1],toAdd.y);
+    b.z = atomicAdd(counts_SSBO[firstIndex+2],toAdd.z);
+    for(int i = 0; i < 3;++i)
+    {
+        if(brightnesses[gl_LocalInvocationIndex][i] < b[i])
+            brightnesses[gl_LocalInvocationIndex][i] = b[i];
+    }
 }
 
 uvec2 getCell(vec2 complex)
@@ -194,6 +207,11 @@ vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, cons
 }
 
 void main() {
+    for(int i = 0; i < 3;++i)
+    {
+        brightnesses[gl_LocalInvocationIndex][i] = 0;
+    }
+
     //we need to know how many total work groups are running this iteration
     const uvec3 totalWorkersPerDimension = gl_WorkGroupSize * gl_NumWorkGroups;
     const uint totalWorkers = totalWorkersPerDimension.x*totalWorkersPerDimension.y*totalWorkersPerDimension.z;
@@ -258,4 +276,24 @@ void main() {
         }
     }
     stateArray[uniqueWorkerID] = state;
+
+    barrier();
+    groupMemoryBarrier();
+    if(gl_LocalInvocationIndex == 0)
+    {
+        uvec3 maxbrightness = uvec3(0,0,0);
+        for(int i = 0; i < brightnesses.length(); ++i)
+        {
+            for(int j=0; j< 3; ++j)
+            {
+                if(brightnesses[i][j] > maxbrightness[j])
+                    maxbrightness[j] = brightnesses[i][j];
+            }
+
+        }
+        for(int i = 0; i < 3; ++i)
+        {
+            atomicMax(brightness[i],maxbrightness[i]);
+        }
+    }
 }
