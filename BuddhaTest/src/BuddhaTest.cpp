@@ -169,8 +169,10 @@ int main(int argc, char * argv[])
     uint64_t totalIterationCount{0};
     uint64_t lastMessage{0};
 
+    const auto startTime{std::chrono::high_resolution_clock::now()};
+    auto frameStop{startTime};
     /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window) && (settings.benchmarkTime == 0 || std::chrono::duration_cast<std::chrono::seconds>(frameStop-startTime).count() < settings.benchmarkTime))
     {
         auto frameStart{std::chrono::high_resolution_clock::now()};
         totalIterationCount += iterationsPerFrame;
@@ -205,7 +207,7 @@ int main(int argc, char * argv[])
 
         /* Poll for and process events */
         glfwPollEvents();
-        auto frameStop{std::chrono::high_resolution_clock::now()};
+        frameStop = std::chrono::high_resolution_clock::now();
         const auto dur{std::chrono::duration_cast<std::chrono::microseconds>(frameStop-frameStart)};
         auto frameDuration{dur.count()};
         if(frameDuration > 0)
@@ -227,14 +229,18 @@ int main(int argc, char * argv[])
     }
 
     //settings.pngFilename = "Don'tForgetToRemoveThisLine.png";
-    if(!settings.pngFilename.empty())
+    if(!settings.pngFilename.empty() || settings.benchmarkTime != 0)
     {
         glMemoryBarrier(GL_ALL_BARRIER_BITS);
         std::vector<uint32_t> readBackBuffer(pixelCount*3);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, drawBuffer);
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER,0,4 *3* pixelCount,readBackBuffer.data());
 
-        Helpers::WriteOutputPNG(settings.pngFilename,readBackBuffer,settings.imageWidth,bufferHeight, settings.pngGamma, settings.pngColorScale);
+        if(settings.benchmarkTime != 0)
+            Helpers::PrintBenchmarkScore(readBackBuffer);
+
+        if(!settings.pngFilename.empty())
+            Helpers::WriteOutputPNG(settings.pngFilename,readBackBuffer,settings.imageWidth,bufferHeight, settings.pngGamma, settings.pngColorScale);
     }
 
     //a bit of cleanup

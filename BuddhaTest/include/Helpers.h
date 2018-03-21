@@ -14,6 +14,8 @@ namespace Helpers
 
     void WriteOutputPNG(const std::string& path, const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight, double gamma, double colorScale);
 
+    void PrintBenchmarkScore(const std::vector<uint32_t>& data);
+
     /** Wraps around a C file descriptor. Libpng could be taught to use C++ streams, but I'm too lazy and rather wrap this ugly thing up, so it gets cleaned... */
     class ScopedCFileDescriptor
     {
@@ -55,6 +57,8 @@ namespace Helpers
 
         unsigned int ignoreMaxBufferSize = 0;
         unsigned int printDebugOutput = 0;
+
+        unsigned int benchmarkTime = 0;
 
         bool CheckValidity();
         bool ParseCommandLine(int argc, char * argv[]);

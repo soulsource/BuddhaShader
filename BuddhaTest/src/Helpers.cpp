@@ -338,7 +338,8 @@ namespace Helpers
             {"--imageColorScale",&pngColorScale},
             {"--output", &pngFilename},
             {"--ignoreMaxBufferSize", &ignoreMaxBufferSize},
-            {"--printDebugOutput", &printDebugOutput}
+            {"--printDebugOutput", &printDebugOutput},
+            {"--benchmark", &benchmarkTime}
         };
 
         for(int i=1; i < argc;++i)
@@ -368,6 +369,7 @@ namespace Helpers
                              "--globalWorkgroupSizeZ [integer] : How often the local work group should be invoked per frame. Values up to 65535 are guaranteed to work. Default is 1." << std::endl <<
                              "--targetFrameRate [integer] : The number of iterations per frame will dynamically adjust to approximately reach this framerate. Default: 60." << std::endl <<
                              "--printDebugOutput [0,1] : If set to 1, every orbitLength a message will be printed to stdout. Default 0." << std::endl <<
+                             "--benchmark [integer] : Run the application for this many seconds, and then print the maximum non-normalized color value. 0 by default, meaning no benchmark." << std::endl <<
                              "--ignoreMaxBufferSize [0,1] : If set to 1, a failed maximum buffer size check is not treated as error. Some graphics drivers report lower values than their absolute limit. Do this on your own risk, though." << std::endl;
                 return false;
             }
@@ -414,7 +416,15 @@ namespace Helpers
     bool DoesFileExist(const std::string &path)
     {
         std::ifstream f(path);
-            return f.good();
+        return f.good();
+    }
+
+    void PrintBenchmarkScore(const std::vector<uint32_t> &data)
+    {
+        uint32_t maxValue{0};
+        for(auto entry : data)
+            maxValue = std::max(maxValue,entry);
+        std::cout << "Benchmark Score (can only be compared for same parameters): " << maxValue << std::endl;
     }
 
 }
