@@ -167,8 +167,8 @@ int main(int argc, char * argv[])
     GLint colorScaleUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "colorScale");
     glUniform1ui(widthUniformFragmentHandle, settings.imageWidth);
     glUniform1ui(heightUniformFragmentHandle, bufferHeight);
-    glUniform1f(gammaUniformFragmentHandle, settings.pngGamma);
-    glUniform1f(colorScaleUniformFragmentHandle,settings.pngColorScale);
+    glUniform1f(gammaUniformFragmentHandle, float(settings.pngGamma));
+    glUniform1f(colorScaleUniformFragmentHandle,float(settings.pngColorScale));
 
     glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
