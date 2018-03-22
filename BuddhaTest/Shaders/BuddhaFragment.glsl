@@ -6,11 +6,11 @@ out vec3 color;
 
 layout(std430, binding=2) restrict readonly buffer renderedDataRed
 {
-        restrict readonly uint counts_SSBO[];
+    restrict readonly uint counts_SSBO[];
 };
 layout(std430, binding=3) restrict readonly buffer brightnessData
 {
-    restrict readonly uvec3 brightness;
+    restrict readonly uint brightness;
 };
 
 uniform uint width;
@@ -27,6 +27,6 @@ uvec3 getColorAt(vec2 fragCoord)
 void main(){
     uvec3 totalCount = getColorAt(uv);
 
-    vec3 scaled = vec3(totalCount)/max(length(vec3(brightness)),1.0);
+    vec3 scaled = vec3(totalCount)/max(float(brightness),1.0);
     color = scaled;
 }

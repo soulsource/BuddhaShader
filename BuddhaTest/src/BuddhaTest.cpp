@@ -122,7 +122,7 @@ int main(int argc, char * argv[])
     GLuint brightnessBuffer;
     glGenBuffers(1,&brightnessBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, brightnessBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 16,nullptr, GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 4,nullptr, GL_DYNAMIC_COPY);
     glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, brightnessBuffer);
 
