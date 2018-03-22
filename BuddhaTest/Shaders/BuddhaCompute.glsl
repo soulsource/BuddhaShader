@@ -49,9 +49,15 @@ void uintMaxIP(inout uvec3 modified, const uvec3 constant)
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
     uint firstIndex = 3*(cell.x + cell.y * width);
-    uintMaxIP(brightnesses[gl_LocalInvocationIndex].x, atomicAdd(counts_SSBO[firstIndex],toAdd.x));
-    uintMaxIP(brightnesses[gl_LocalInvocationIndex].y, atomicAdd(counts_SSBO[firstIndex+1],toAdd.y));
-    uintMaxIP(brightnesses[gl_LocalInvocationIndex].z, atomicAdd(counts_SSBO[firstIndex+2],toAdd.z));
+    uvec3 b;
+    b.x = atomicAdd(counts_SSBO[firstIndex],toAdd.x);
+    b.y = atomicAdd(counts_SSBO[firstIndex+1],toAdd.y);
+    b.z = atomicAdd(counts_SSBO[firstIndex+2],toAdd.z);
+    for(int i = 0; i < 3;++i)
+    {
+        if(brightnesses[gl_LocalInvocationIndex][i] < b[i])
+            brightnesses[gl_LocalInvocationIndex][i] = b[i];
+    }
 }
 
 uvec2 getCell(vec2 complex)
