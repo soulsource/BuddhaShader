@@ -35,18 +35,23 @@ uniform uint totalIterations;
 
 shared uvec3[gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z] brightnesses;
 
+void uintMaxIP(inout uint modified, const uint constant)
+{
+    modified = modified < constant ? constant : modified;
+}
+
+void uintMaxIP(inout uvec3 modified, const uvec3 constant)
+{
+    for(int i = 0; i < 3 ; ++i)
+        uintMaxIP(modified[i],constant[i]);
+}
+
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
     uint firstIndex = 3*(cell.x + cell.y * width);
-    uvec3 b;
-    b.x = atomicAdd(counts_SSBO[firstIndex],toAdd.x);
-    b.y = atomicAdd(counts_SSBO[firstIndex+1],toAdd.y);
-    b.z = atomicAdd(counts_SSBO[firstIndex+2],toAdd.z);
-    for(int i = 0; i < 3;++i)
-    {
-        if(brightnesses[gl_LocalInvocationIndex][i] < b[i])
-            brightnesses[gl_LocalInvocationIndex][i] = b[i];
-    }
+    uintMaxIP(brightnesses[gl_LocalInvocationIndex].x, atomicAdd(counts_SSBO[firstIndex],toAdd.x));
+    uintMaxIP(brightnesses[gl_LocalInvocationIndex].y, atomicAdd(counts_SSBO[firstIndex+1],toAdd.y));
+    uintMaxIP(brightnesses[gl_LocalInvocationIndex].z, atomicAdd(counts_SSBO[firstIndex+2],toAdd.z));
 }
 
 uvec2 getCell(vec2 complex)
@@ -277,23 +282,30 @@ void main() {
     }
     stateArray[uniqueWorkerID] = state;
 
+    //use divide et impera to get the real maximum brightness of this local group
     barrier();
-    groupMemoryBarrier();
+    if(bool(brightnesses.length() & 1) && gl_LocalInvocationIndex == 0)
+    {
+        uintMaxIP(brightnesses[0], brightnesses[brightnesses.length()-1]);
+    }
+    for(int step = brightnesses.length()/2;step >= 1;step = step/2)
+    {
+        barrier();
+        if(gl_LocalInvocationIndex < step)
+        {
+            uintMaxIP(brightnesses[gl_LocalInvocationIndex],brightnesses[gl_LocalInvocationIndex+step]);
+            if(bool(step & 1) && gl_LocalInvocationIndex == 0)
+            {
+                uintMaxIP(brightnesses[0], brightnesses[step-1]);
+            }
+        }
+    }
+    barrier();
     if(gl_LocalInvocationIndex == 0)
     {
-        uvec3 maxbrightness = uvec3(0,0,0);
-        for(int i = 0; i < brightnesses.length(); ++i)
+        for(uint i = 0; i < 3; ++i)
         {
-            for(int j=0; j< 3; ++j)
-            {
-                if(brightnesses[i][j] > maxbrightness[j])
-                    maxbrightness[j] = brightnesses[i][j];
-            }
-
-        }
-        for(int i = 0; i < 3; ++i)
-        {
-            atomicMax(brightness[i],maxbrightness[i]);
+            atomicMax(brightness[i], brightnesses[0][i]);
         }
     }
 }
