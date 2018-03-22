@@ -12,6 +12,7 @@ layout(std430, binding=3) restrict buffer brightnessData
     restrict uint brightness;
 };
 
+/** Data stored in the state buffer. */
 struct individualData
 {
     uint phase;
@@ -33,6 +34,7 @@ uniform uvec4 orbitLength;
 uniform uint iterationsPerDispatch;
 uniform uint totalIterations;
 
+/** Data stored in shared memory. Used to reduce register pressure. Read at beginning, written back at end. */
 struct workerState
 {
     uint phase;
@@ -42,6 +44,7 @@ struct workerState
     uint brightness;
 };
 
+/** Storage in shared memory. Used to reduce register pressure. */
 shared workerState[gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z] localStore;
 
 void uintMaxIP(inout uint modified, const uint constant)

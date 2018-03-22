@@ -15,6 +15,8 @@ layout(std430, binding=3) restrict readonly buffer brightnessData
 
 uniform uint width;
 uniform uint height;
+uniform float gamma;
+uniform float colorScale;
 
 uvec3 getColorAt(vec2 fragCoord)
 {
@@ -27,6 +29,6 @@ uvec3 getColorAt(vec2 fragCoord)
 void main(){
     uvec3 totalCount = getColorAt(uv);
 
-    vec3 scaled = vec3(totalCount)/max(float(brightness),1.0);
+    vec3 scaled = pow(min(vec3(1.0),colorScale*vec3(totalCount)/max(float(brightness),1.0)),vec3(gamma));
     color = scaled;
 }

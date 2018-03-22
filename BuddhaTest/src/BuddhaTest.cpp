@@ -163,8 +163,13 @@ int main(int argc, char * argv[])
     glUseProgram(VertexAndFragmentShaders);
     GLint widthUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "width");
     GLint heightUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "height");
+    GLint gammaUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "gamma");
+    GLint colorScaleUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "colorScale");
     glUniform1ui(widthUniformFragmentHandle, settings.imageWidth);
     glUniform1ui(heightUniformFragmentHandle, bufferHeight);
+    glUniform1f(gammaUniformFragmentHandle, settings.pngGamma);
+    glUniform1f(colorScaleUniformFragmentHandle,settings.pngColorScale);
+
     glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
     uint32_t iterationsPerFrame = 1;
