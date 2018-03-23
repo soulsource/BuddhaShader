@@ -127,8 +127,10 @@ bool isInMainCardioid(vec2 v)
     return rhsSqrt*rhsSqrt<zNormSqr;
 }
 
-bool isInMainBulb(vec2 v)
+bool isInKnownCircle(vec2 v)
 {
+    //this checks if the point is in some known circle that's part of the Mandelbrot set.
+    //The first cirlce is at -1 with radius of 1/4. That one can be derived analytically:
     //The condition for this is that f(f(z)) = z
     //where f(z) = z*z+v
     //This is an equation of fourth order, but two solutions are the same as
@@ -136,9 +138,38 @@ bool isInMainBulb(vec2 v)
     //Factoring those out, you end up with a second order equation.
     //Again, the solutions need to be attractive (|d/dz f(f(z))| < 1)
     //Well, after a bit of magic one finds out it's a circle around -1, radius 1/4.
-    vec2 shifted = v + vec2(1,0);
-    float sqrRadius = dot(shifted,shifted);
-    return sqrRadius<0.062499999;
+
+    //the other circles are taken from http://linas.org/art-gallery/bud/bud.html
+    //with a bit of tolerance. Those number are experimental, and I just don't want to risk missing points.
+    //Also, here perfect circles are used, they used ellipses. The difference between circle and ellipse orbit was
+    //always smaller than 0.6% for them though, so taking a 2% margin will more than do.
+    struct circle
+    {
+        vec2 center;
+        float radius;
+    };
+    const circle[] circles =
+    {
+        circle(vec2(-1.0,0.0),0.24999),
+        circle(vec2(-0.124866818, 0.74396884), 0.09452088*0.98),
+        circle(vec2(0.281058181, 0.531069896), 0.043999991*0.98),
+        circle(vec2(0.37926948, 0.33593786), 0.0237270*0.98),
+        circle(vec2(0.38912506, 0.216548077), 0.01415882*0.98),
+        circle(vec2(0.376222674, 0.145200726), 0.00909100*0.98),
+        circle(vec2(0.35924728, 0.101225755), 0.00616879*0.98),
+        circle(vec2(0.34339510, 0.073032700), 0.00437060*0.98),
+        circle(vec2(0.32985010, 0.054264593), 0.00320580*0.98),
+        circle(vec2(0.31860462, 0.0413441289), 0.002419144*0.98),
+        circle(vec2(0.30933816, 0.032184347), 0.001869337*0.98)
+    };
+    for(int i=0;i < circles.length();++i)
+    {
+        vec2 shifted = vec2(v.x,abs(v.y)) - circles[i].center;
+        float sqrRadius = dot(shifted,shifted);
+        if(sqrRadius < circles[i].radius*circles[i].radius)
+            return true;
+    }
+    return false;
 }
 
 bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations, out bool result)
@@ -214,7 +245,7 @@ void main() {
             //we know that iterationsLeftToDo is at least 1 by the while condition.
             --iterationsLeftToDo; //count this as 1 iteration.
             offset = getCurrentOrbitOffset(state.orbitNumber, totalWorkers, uniqueWorkerID);
-            if(isInMainBulb(offset) || isInMainCardioid(offset))
+            if(isInMainCardioid(offset) || isInKnownCircle(offset))
             {
                 // do not waste time drawing this orbit
                 ++state.orbitNumber;
