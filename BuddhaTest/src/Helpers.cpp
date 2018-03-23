@@ -181,12 +181,11 @@ namespace Helpers
         {
             maxValue = std::max(maxValue,data[i]);
         }
-        for(unsigned int row = 0; row < bufferHeight/2; ++row)
+        for(unsigned int row = 0; row < bufferHeight; ++row)
         {
-            unsigned int otherRow = bufferHeight - 1-row;
             for(unsigned int col=0;col < width*3; ++col)
             {
-                double c = 0.5*(data[col + row*width*3] + data[col + otherRow*width*3]);
+                double c = data[col + row*width*3];
                 if(fabs(gamma - 1.0) > 0.0001 || fabs(colorScale - 1.0) > 0.0001)
                 {
                     pngData[col + row*width*3] = static_cast<png_byte>(255.0 * pow(std::min(1.0,colorScale*c/static_cast<double>(maxValue)),gamma));
@@ -195,7 +194,6 @@ namespace Helpers
                 {
                     pngData[col + row*width*3] = (255*c + (maxValue/2))/maxValue;
                 }
-                pngData[col+otherRow*width*3] = pngData[col + row*width*3];
             }
         }
 
