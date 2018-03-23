@@ -34,13 +34,9 @@ uniform uvec4 orbitLength;
 uniform uint iterationsPerDispatch;
 uniform uint totalIterations;
 
-/** Data stored in shared memory. Used to reduce register pressure. Read at beginning, written back at end. */
+/** Data stored in shared memory. Used to reduce register pressure. Read at beginning from buffer (if needed), written back at end. */
 struct workerState
 {
-    uint phase;
-    uint orbitNumber;
-    uint doneIterations;
-
     uint brightness;
 };
 
@@ -238,70 +234,65 @@ void main() {
 
     const uint uniqueWorkerID = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y*totalWorkersPerDimension.x + gl_GlobalInvocationID.z*(totalWorkersPerDimension.x * totalWorkersPerDimension.y);
 
-    localStore[gl_LocalInvocationIndex].phase = stateArray[uniqueWorkerID].phase;
-    localStore[gl_LocalInvocationIndex].orbitNumber = stateArray[uniqueWorkerID].orbitNumber;
-    localStore[gl_LocalInvocationIndex].doneIterations = stateArray[uniqueWorkerID].doneIterations;
-    vec2 lastPosition = stateArray[uniqueWorkerID].lastPosition;
+    individualData state = stateArray[uniqueWorkerID];
 
     //getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
     uint iterationsLeftToDo = iterationsPerDispatch;
-    vec2 offset = getCurrentOrbitOffset(localStore[gl_LocalInvocationIndex].orbitNumber, totalWorkers, uniqueWorkerID);
+    vec2 offset = getCurrentOrbitOffset(state.orbitNumber, totalWorkers, uniqueWorkerID);
 
     while(iterationsLeftToDo != 0)
     {
-        if(localStore[gl_LocalInvocationIndex].phase == 0)
+        if(state.phase == 0)
         {
             //new orbit:
             //we know that iterationsLeftToDo is at least 1 by the while condition.
             --iterationsLeftToDo; //count this as 1 iteration.
-            offset = getCurrentOrbitOffset(localStore[gl_LocalInvocationIndex].orbitNumber, totalWorkers, uniqueWorkerID);
+            offset = getCurrentOrbitOffset(state.orbitNumber, totalWorkers, uniqueWorkerID);
             if(isInMainBulb(offset) || isInMainCardioid(offset))
             {
                 // do not waste time drawing this orbit
-                ++localStore[gl_LocalInvocationIndex].orbitNumber;
+                ++state.orbitNumber;
             }
             else
             {
                 //cool orbit!
-                lastPosition = vec2(0);
-                localStore[gl_LocalInvocationIndex].phase = 1;
-                localStore[gl_LocalInvocationIndex].doneIterations = 0;
+                state.lastPosition = vec2(0);
+                state.phase = 1;
+                state.doneIterations = 0;
             }
         }
-        if(localStore[gl_LocalInvocationIndex].phase == 1)
+        if(state.phase == 1)
         {
             //check if this orbit is going to be drawn
             bool result;
-            if(isGoingToBeDrawn(offset,totalIterations, lastPosition, iterationsLeftToDo, localStore[gl_LocalInvocationIndex].doneIterations , result))
+            if(isGoingToBeDrawn(offset,totalIterations, state.lastPosition, iterationsLeftToDo, state.doneIterations , result))
             {
                 if(result)
                 {
                     //on to step 2: drawing
-                    localStore[gl_LocalInvocationIndex].phase = 2;
-                    lastPosition = vec2(0);
-                    localStore[gl_LocalInvocationIndex].doneIterations = 0;
+                    state.phase = 2;
+                    state.lastPosition = vec2(0);
+                    state.doneIterations = 0;
                 }
                 else
                 {
                     //back to step 0
-                    ++localStore[gl_LocalInvocationIndex].orbitNumber;
-                    localStore[gl_LocalInvocationIndex].phase = 0;
+                    ++state.orbitNumber;
+                    state.phase = 0;
                 }
             }
         }
-        if(localStore[gl_LocalInvocationIndex].phase == 2)
+        if(state.phase == 2)
         {
-            if(drawOrbit(offset, totalIterations, lastPosition, iterationsLeftToDo, localStore[gl_LocalInvocationIndex].doneIterations))
+            if(drawOrbit(offset, totalIterations, state.lastPosition, iterationsLeftToDo, state.doneIterations))
             {
-                ++localStore[gl_LocalInvocationIndex].orbitNumber;
-                localStore[gl_LocalInvocationIndex].phase = 0;
+                ++state.orbitNumber;
+                state.phase = 0;
             }
         }
     }
-    stateArray[uniqueWorkerID].orbitNumber = localStore[gl_LocalInvocationIndex].orbitNumber;
-    stateArray[uniqueWorkerID].phase = localStore[gl_LocalInvocationIndex].phase;
-    stateArray[uniqueWorkerID].doneIterations = localStore[gl_LocalInvocationIndex].doneIterations;
-    stateArray[uniqueWorkerID].lastPosition = lastPosition;
+
+    stateArray[uniqueWorkerID] = state;
 
 
     //use divide et impera to get the real maximum brightness of this local group
