@@ -21,14 +21,17 @@ uniform float colorScale;
 uvec3 getColorAt(vec2 fragCoord)
 {
     uint xIndex = uint(max(0.0,(fragCoord.x+1.0)*0.5*width));
-    uint yIndex = uint(max(0.0,abs(fragCoord.y)*height));
+    uint yIndex = uint(max(0.0,abs(fragCoord.y+1.0)*0.5*height));
     uint firstIndex = 3*(xIndex + yIndex * width);
-    return uvec3(counts_SSBO[firstIndex],counts_SSBO[firstIndex+1],counts_SSBO[firstIndex+2]);
+    uvec3 c1=uvec3(counts_SSBO[firstIndex],counts_SSBO[firstIndex+1],counts_SSBO[firstIndex+2]);
+    firstIndex = 3*(xIndex +(height-1 - yIndex) * width);
+    uvec3 c2=uvec3(counts_SSBO[firstIndex],counts_SSBO[firstIndex+1],counts_SSBO[firstIndex+2]);
+    return c1+c2;
 }
 
 void main(){
     uvec3 totalCount = getColorAt(uv);
 
-    vec3 scaled = pow(min(vec3(1.0),colorScale*vec3(totalCount)/max(float(brightness),1.0)),vec3(gamma));
+    vec3 scaled = pow(min(vec3(1.0),colorScale*0.5*vec3(totalCount)/max(float(brightness),1.0)),vec3(gamma));
     color = scaled;
 }

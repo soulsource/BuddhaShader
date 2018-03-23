@@ -12,6 +12,11 @@ layout(std430, binding=3) restrict buffer brightnessData
     restrict uint brightness;
 };
 
+layout(std430, binding=4) restrict buffer importanceMapBufferBlock
+{
+    restrict uint importanceMap[];
+};
+
 /** Data stored in the state buffer. */
 struct individualData
 {
@@ -34,6 +39,8 @@ uniform uvec4 orbitLength;
 uniform uint iterationsPerDispatch;
 uniform uint totalIterations;
 
+uniform vec4 imageRange = vec4(-2.0,-1.125,2.0,1.125);
+
 /** Data stored in shared memory. Used to reduce register pressure. Read at beginning from buffer (if needed), written back at end. */
 struct workerState
 {
@@ -54,6 +61,17 @@ void uintMaxIP(inout uvec3 modified, const uvec3 constant)
         uintMaxIP(modified[i],constant[i]);
 }
 
+void addToImportanceMap(vec2 orbitParameter)
+{
+    //as starting point values are in x [-2:2] and y [0:2], importance map has an aspect ratio of 2:1
+    float width = sqrt(float(2*(importanceMap.length() - 1)));
+    //float height = 0.5*width;
+    orbitParameter *= vec2(0.25,0.5);
+    orbitParameter.x += 0.5;
+    //now both components are between 0 and 1
+
+}
+
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 {
     uint firstIndex = 3*(cell.x + cell.y * width);
@@ -70,7 +88,7 @@ void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 
 uvec2 getCell(vec2 complex)
 {
-    vec2 uv = clamp(vec2((complex.x+2.5)/3.5, (abs(complex.y))),vec2(0.0),vec2(1.0));
+    vec2 uv = clamp(vec2((complex.x-imageRange[0])/(imageRange[2]-imageRange[0]), (complex.y-imageRange[1])/(imageRange[3]-imageRange[1])),vec2(0.0),vec2(1.0));
     return uvec2(width * uv.x, height * uv.y);
 }
 
@@ -236,7 +254,7 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
             doneIterations = i+1;
             return true; //done.
         }
-        if(lastVal.x > -2.5 && lastVal.x < 1.0 && lastVal.y > -1.0 && lastVal.y < 1.0)
+        if(lastVal.x > imageRange[0] && lastVal.x < imageRange[2] && lastVal.y > imageRange[1] && lastVal.y < imageRange[3])
         {
             addToColorAt(lastVal,uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
         }
@@ -253,7 +271,7 @@ vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, cons
     seed = (seed ^ (intHash(orbitNumber+totalWorkers)));
     float y = hash1(seed,seed);
     vec2 random = vec2(x,y);
-    return vec2(random.x * 3.5-2.5,random.y*1.55);
+    return vec2(random.x * 4-2,random.y*2);
 }
 
 void main() {

@@ -26,8 +26,6 @@ int main(int argc, char * argv[])
         return 2;
     }
 
-    unsigned int bufferHeight = settings.imageHeight/2;
-
     GLFWwindow* window;
 
     /* Initialize the library */
@@ -61,7 +59,7 @@ int main(int argc, char * argv[])
 
     //we have a context. Let's check if input is sane.
     //calcualte buffer size, and make sure it's allowed by the driver.
-    const unsigned int pixelCount{(settings.imageWidth * bufferHeight)};
+    const unsigned int pixelCount{(settings.imageWidth * settings.imageHeight)};
     if(!settings.CheckValidity())
     {
         glfwTerminate();
@@ -126,6 +124,13 @@ int main(int argc, char * argv[])
     glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, brightnessBuffer);
 
+    GLuint importanceMapBuffer;
+    glGenBuffers(1,&importanceMapBuffer);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER,importanceMapBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER,4*8193,nullptr, GL_DYNAMIC_COPY); //128*64+1. one larger than the map itself -> max brightness. Aspect 2:1 because mandel is symmetric around x
+    glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, brightnessBuffer);
+
     //the state buffer is special. While making each entry 8 bytes large and using std430 layout, the data is never read back,
     //so we can get away with being more lenient and allowing the compiler to choose layout without much extra work.
     //We need to query the size for allocation though.
@@ -155,7 +160,7 @@ int main(int argc, char * argv[])
     GLint iterationsPerDispatchHandle = glGetUniformLocation(ComputeShader, "iterationsPerDispatch");
     glUniform4ui(orbitLengthUniformHandle,settings.orbitLengthRed,settings.orbitLengthGreen,settings.orbitLengthBlue,settings.orbitLengthSkip);
     glUniform1ui(widthUniformComputeHandle, settings.imageWidth);
-    glUniform1ui(heightUniformComputeHandle, bufferHeight);
+    glUniform1ui(heightUniformComputeHandle, settings.imageHeight);
 
     const uint32_t maxOrbitlength = std::max(std::max(settings.orbitLengthBlue,settings.orbitLengthGreen),settings.orbitLengthRed);
     glUniform1ui(totalIterationsUniformHandle, maxOrbitlength);
@@ -166,7 +171,7 @@ int main(int argc, char * argv[])
     GLint gammaUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "gamma");
     GLint colorScaleUniformFragmentHandle = glGetUniformLocation(VertexAndFragmentShaders, "colorScale");
     glUniform1ui(widthUniformFragmentHandle, settings.imageWidth);
-    glUniform1ui(heightUniformFragmentHandle, bufferHeight);
+    glUniform1ui(heightUniformFragmentHandle, settings.imageHeight);
     glUniform1f(gammaUniformFragmentHandle, float(settings.pngGamma));
     glUniform1f(colorScaleUniformFragmentHandle,float(settings.pngColorScale));
 
@@ -251,7 +256,7 @@ int main(int argc, char * argv[])
             Helpers::PrintBenchmarkScore(readBackBuffer);
 
         if(!settings.pngFilename.empty())
-            Helpers::WriteOutputPNG(settings.pngFilename,readBackBuffer,settings.imageWidth,bufferHeight, settings.pngGamma, settings.pngColorScale);
+            Helpers::WriteOutputPNG(settings.pngFilename,readBackBuffer,settings.imageWidth,settings.imageHeight, settings.pngGamma, settings.pngColorScale);
     }
 
     //a bit of cleanup

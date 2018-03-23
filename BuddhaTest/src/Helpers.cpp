@@ -169,9 +169,9 @@ namespace Helpers
 
     void WriteOutputPNG(const std::string &path, const std::vector<uint32_t>& data, unsigned int width, unsigned int bufferHeight, double gamma, double colorScale)
     {
-        std::vector<png_byte> pngData(3*width*2*bufferHeight);
-        std::vector<png_byte *> rows{2*bufferHeight};
-        for(unsigned int i = 0; i < 2*bufferHeight ; ++i)
+        std::vector<png_byte> pngData(3*width*bufferHeight);
+        std::vector<png_byte *> rows{bufferHeight};
+        for(unsigned int i = 0; i < bufferHeight ; ++i)
         {
             rows[i] = pngData.data()+3*width*i;
         }
@@ -181,22 +181,21 @@ namespace Helpers
         {
             maxValue = std::max(maxValue,data[i]);
         }
-        for(unsigned int i = 0; i < data.size();++i)
+        for(unsigned int row = 0; row < bufferHeight/2; ++row)
         {
-            if(fabs(gamma - 1.0) > 0.0001 || fabs(colorScale - 1.0) > 0.0001)
+            unsigned int otherRow = bufferHeight - 1-row;
+            for(unsigned int col=0;col < width*3; ++col)
             {
-                pngData[data.size() + i] = static_cast<png_byte>(255.0 * pow(std::min(1.0,colorScale*static_cast<double>(data[i])/static_cast<double>(maxValue)),gamma));
-            }
-            else
-            {
-                pngData[data.size() + i] = (255*data[i] + (maxValue/2))/maxValue;
-            }
-        }
-        for(unsigned int i = 0; i < bufferHeight;++i)
-        {
-            for(unsigned int j = 0; j < width*3;++j)
-            {
-                rows[i][j] =rows[2*bufferHeight-i-1][j];
+                double c = 0.5*(data[col + row*width*3] + data[col + otherRow*width*3]);
+                if(fabs(gamma - 1.0) > 0.0001 || fabs(colorScale - 1.0) > 0.0001)
+                {
+                    pngData[col + row*width*3] = static_cast<png_byte>(255.0 * pow(std::min(1.0,colorScale*c/static_cast<double>(maxValue)),gamma));
+                }
+                else
+                {
+                    pngData[col + row*width*3] = (255*c + (maxValue/2))/maxValue;
+                }
+                pngData[col+otherRow*width*3] = pngData[col + row*width*3];
             }
         }
 
@@ -223,7 +222,7 @@ namespace Helpers
             return;
         }
         png_init_io(png_ptr, fd.Get());
-        png_set_IHDR(png_ptr, info_ptr, width, 2*bufferHeight, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+        png_set_IHDR(png_ptr, info_ptr, width, bufferHeight, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
         png_write_info(png_ptr, info_ptr);
         //header written.
