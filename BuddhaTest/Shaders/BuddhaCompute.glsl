@@ -52,7 +52,8 @@ struct workerState
 /** Storage in shared memory. Used to reduce register pressure. */
 shared workerState[gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z] localStore;
 shared uint maxImportance;
-shared uint importanceMapCache[5000]; //100*50
+shared uint sumImportance;
+shared uint[5000] importanceMapCache; //100*50
 
 void uintMaxIP(inout uint modified, const uint constant)
 {
@@ -67,6 +68,10 @@ void uintMaxIP(inout uvec3 modified, const uvec3 constant)
 
 void addToImportanceMap(vec2 orbitParameter, uint value)
 {
+    //prevent overflow:
+    if(totalIterations < sumImportance/1000)//0x7fffffff)
+        return;
+
     //as starting point values are in [-2:2], importance map has an aspect ratio of 2:1, as it is symmetric around x-axis.
     //float width = sqrt(float(2*(importanceMap.length() - 1)));
     //float height = 0.5*width;
@@ -275,16 +280,34 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, in uint scale, inout vec
 
 vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, const uint uniqueWorkerID, out uint scale)
 {
-    //TODO: Use non-cached importanceMap to generate this data.
-
     uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
     float x = hash1(seed,seed);
     seed = (seed ^ (intHash(orbitNumber+totalWorkers)));
     float y = hash1(seed,seed);
-    vec2 random = vec2(x,y);
+    if(totalIterations < sumImportance/1000)
+    {
+        //use importance map
+        uint idx = seed%sumImportance;
+        for(int i=0; i < 5000;++i)
+        {
+            idx -= importanceMap[i];
+            if(idx >= sumImportance)
+            {
+                uint xcoord = (i)%100;
+                uint ycoord = (i)/100;
+                scale = (1000*maxImportance)/(importanceMap[i]);
+                return vec2(0.04*(x+float(xcoord))-2.0,0.04*(y+float(ycoord)));
+            }
+        }
+        return vec2(0,0);
+    }
+    else
+    {
+        vec2 random = vec2(x,y);
 
-    scale = 1;
-    return vec2(random.x * 4-2,random.y*2);
+        scale = 1;
+        return vec2(random.x * 4-2,random.y*2);
+    }
 }
 
 void initImportanceMapCache()
@@ -292,17 +315,22 @@ void initImportanceMapCache()
     if(gl_LocalInvocationIndex == 0)
     {
         maxImportance = 0;
+        sumImportance = 0;
     }
+
     barrier();
+
     for(uint i = 0; i < importanceMapCache.length(); i += gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z)
     {
         if(i+gl_LocalInvocationIndex < importanceMapCache.length())
         {
             importanceMapCache[i+gl_LocalInvocationIndex] = 0;
             atomicMax(maxImportance,importanceMap[i+gl_LocalInvocationIndex]);
+            atomicAdd(sumImportance,importanceMap[i+gl_LocalInvocationIndex]);
         }
     }
     barrier();
+
 }
 
 void writeBackImportanceMapCache()
