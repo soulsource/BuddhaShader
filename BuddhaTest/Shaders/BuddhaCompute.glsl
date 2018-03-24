@@ -65,7 +65,7 @@ void uintMaxIP(inout uvec3 modified, const uvec3 constant)
         uintMaxIP(modified[i],constant[i]);
 }
 
-void addToImportanceMap(vec2 orbitParameter)
+void addToImportanceMap(vec2 orbitParameter, uint value)
 {
     //as starting point values are in [-2:2], importance map has an aspect ratio of 2:1, as it is symmetric around x-axis.
     //float width = sqrt(float(2*(importanceMap.length() - 1)));
@@ -77,7 +77,7 @@ void addToImportanceMap(vec2 orbitParameter)
     //now both components are between 0 and 1
     uint xc = uint(clamp(scaled.x*100.0,0.0,100.0));
     uint yc = uint(clamp(scaled.y*50.0,0.0,50.0));
-    atomicAdd(importanceMapCache[xc+100*yc],1);
+    atomicAdd(importanceMapCache[xc+100*yc],value);
 }
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
@@ -265,7 +265,7 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, in uint scale, inout vec
         if(lastVal.x > imageRange[0] && lastVal.x < imageRange[2] && lastVal.y > imageRange[1] && lastVal.y < imageRange[3])
         {
             addToColorAt(lastVal,scale*uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
-            addToImportanceMap(offset);
+            addToImportanceMap(offset, scale);
         }
     }
     iterationsLeftThisFrame -= (endCount - doneIterations);
