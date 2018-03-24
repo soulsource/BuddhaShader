@@ -127,9 +127,9 @@ int main(int argc, char * argv[])
     GLuint importanceMapBuffer;
     glGenBuffers(1,&importanceMapBuffer);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER,importanceMapBuffer);
-    glBufferData(GL_SHADER_STORAGE_BUFFER,4*8193,nullptr, GL_DYNAMIC_COPY); //128*64+1. one larger than the map itself -> max brightness. Aspect 2:1 because mandel is symmetric around x
+    glBufferData(GL_SHADER_STORAGE_BUFFER,4*(100*50),nullptr, GL_DYNAMIC_COPY); //100*50 pixels. Map is symmetric around x-axis. This size is *hardcoded* in the shader!
     glClearBufferData(GL_SHADER_STORAGE_BUFFER,GL_R8,GL_RED,GL_UNSIGNED_INT,nullptr);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, brightnessBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, importanceMapBuffer);
 
     //the state buffer is special. While making each entry 8 bytes large and using std430 layout, the data is never read back,
     //so we can get away with being more lenient and allowing the compiler to choose layout without much extra work.

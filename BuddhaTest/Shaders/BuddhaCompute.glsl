@@ -14,7 +14,7 @@ layout(std430, binding=3) restrict buffer brightnessData
 
 layout(std430, binding=4) restrict buffer importanceMapBufferBlock
 {
-    restrict uint importanceMap[];
+    restrict uint importanceMap[5000]; //100*50
 };
 
 /** Data stored in the state buffer. */
@@ -23,7 +23,9 @@ struct individualData
     uint phase;
     uint orbitNumber;
     uint doneIterations;
+    uint scale;
     vec2 lastPosition;
+    vec2 offset;
 };
 
 layout(packed, binding=5) restrict buffer statusBuffer
@@ -49,6 +51,8 @@ struct workerState
 
 /** Storage in shared memory. Used to reduce register pressure. */
 shared workerState[gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z] localStore;
+shared uint maxImportance;
+shared uint importanceMapCache[5000]; //100*50
 
 void uintMaxIP(inout uint modified, const uint constant)
 {
@@ -63,13 +67,17 @@ void uintMaxIP(inout uvec3 modified, const uvec3 constant)
 
 void addToImportanceMap(vec2 orbitParameter)
 {
-    //as starting point values are in x [-2:2] and y [0:2], importance map has an aspect ratio of 2:1
-    float width = sqrt(float(2*(importanceMap.length() - 1)));
+    //as starting point values are in [-2:2], importance map has an aspect ratio of 2:1, as it is symmetric around x-axis.
+    //float width = sqrt(float(2*(importanceMap.length() - 1)));
     //float height = 0.5*width;
-    orbitParameter *= vec2(0.25,0.5);
-    orbitParameter.x += 0.5;
+    vec2 scaled = orbitParameter;
+    scaled.y = abs(orbitParameter.y);
+    scaled *= vec2(0.25,0.5);
+    scaled.x += 0.5;
     //now both components are between 0 and 1
-
+    uint xc = uint(clamp(scaled.x*100.0,0.0,100.0));
+    uint yc = uint(clamp(scaled.y*50.0,0.0,50.0));
+    atomicAdd(importanceMapCache[xc+100*yc],1);
 }
 
 void addToColorOfCell(uvec2 cell, uvec3 toAdd)
@@ -242,7 +250,7 @@ bool isGoingToBeDrawn(in vec2 offset, in uint totalIterations, inout vec2 lastVa
     return endCount == totalIterations;
 }
 
-bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations)
+bool drawOrbit(in vec2 offset, in uint totalIterations, in uint scale, inout vec2 lastVal, inout uint iterationsLeftThisFrame, inout uint doneIterations)
 {
     uint endCount = doneIterations + iterationsLeftThisFrame > totalIterations ? totalIterations : doneIterations + iterationsLeftThisFrame;
     for(uint i = doneIterations; i < endCount;++i)
@@ -256,7 +264,8 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
         }
         if(lastVal.x > imageRange[0] && lastVal.x < imageRange[2] && lastVal.y > imageRange[1] && lastVal.y < imageRange[3])
         {
-            addToColorAt(lastVal,uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
+            addToColorAt(lastVal,scale*uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
+            addToImportanceMap(offset);
         }
     }
     iterationsLeftThisFrame -= (endCount - doneIterations);
@@ -264,18 +273,52 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
     return endCount == totalIterations;
 }
 
-vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, const uint uniqueWorkerID)
+vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, const uint uniqueWorkerID, out uint scale)
 {
     uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
     float x = hash1(seed,seed);
     seed = (seed ^ (intHash(orbitNumber+totalWorkers)));
     float y = hash1(seed,seed);
     vec2 random = vec2(x,y);
+
+    scale = 1;
     return vec2(random.x * 4-2,random.y*4-2);
+}
+
+void initImportanceMapCache()
+{
+    if(gl_LocalInvocationIndex == 0)
+    {
+        maxImportance = 0;
+    }
+    barrier();
+    for(uint i = 0; i < importanceMapCache.length(); i += gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z)
+    {
+        if(i+gl_LocalInvocationIndex < importanceMapCache.length())
+        {
+            importanceMapCache[i+gl_LocalInvocationIndex] = 0;
+            atomicMax(maxImportance,importanceMap[i+gl_LocalInvocationIndex]);
+        }
+    }
+    barrier();
+}
+
+void writeBackImportanceMapCache()
+{
+    barrier();
+    for(uint i = 0; i < importanceMapCache.length(); i += gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z)
+    {
+        if(i+gl_LocalInvocationIndex < importanceMapCache.length())
+        {
+            atomicAdd(importanceMap[i+gl_LocalInvocationIndex],importanceMapCache[i+gl_LocalInvocationIndex]);
+        }
+    }
+    barrier();
 }
 
 void main() {
     localStore[gl_LocalInvocationIndex].brightness = 0;
+    initImportanceMapCache();
 
     //we need to know how many total work groups are running this iteration
     const uvec3 totalWorkersPerDimension = gl_WorkGroupSize * gl_NumWorkGroups;
@@ -287,7 +330,6 @@ void main() {
 
     //getIndividualState(in uint CellID, out vec2 offset, out vec2 coordinates, out uint phase, out uint orbitNumber, out uint doneIterations)
     uint iterationsLeftToDo = iterationsPerDispatch;
-    vec2 offset = getCurrentOrbitOffset(state.orbitNumber, totalWorkers, uniqueWorkerID);
 
     while(iterationsLeftToDo != 0)
     {
@@ -296,8 +338,8 @@ void main() {
             //new orbit:
             //we know that iterationsLeftToDo is at least 1 by the while condition.
             --iterationsLeftToDo; //count this as 1 iteration.
-            offset = getCurrentOrbitOffset(state.orbitNumber, totalWorkers, uniqueWorkerID);
-            if(isInMainCardioid(offset) || isInKnownCircle(offset))
+            state.offset = getCurrentOrbitOffset(state.orbitNumber, totalWorkers, uniqueWorkerID, state.scale);
+            if(isInMainCardioid(state.offset) || isInKnownCircle(state.offset))
             {
                 // do not waste time drawing this orbit
                 ++state.orbitNumber;
@@ -314,7 +356,7 @@ void main() {
         {
             //check if this orbit is going to be drawn
             bool result;
-            if(isGoingToBeDrawn(offset,totalIterations, state.lastPosition, iterationsLeftToDo, state.doneIterations , result))
+            if(isGoingToBeDrawn(state.offset,totalIterations, state.lastPosition, iterationsLeftToDo, state.doneIterations , result))
             {
                 if(result)
                 {
@@ -333,7 +375,7 @@ void main() {
         }
         if(state.phase == 2)
         {
-            if(drawOrbit(offset, totalIterations, state.lastPosition, iterationsLeftToDo, state.doneIterations))
+            if(drawOrbit(state.offset, totalIterations, state.scale, state.lastPosition, iterationsLeftToDo, state.doneIterations))
             {
                 ++state.orbitNumber;
                 state.phase = 0;
@@ -343,6 +385,7 @@ void main() {
 
     stateArray[uniqueWorkerID] = state;
 
+    writeBackImportanceMapCache();
 
     //use divide et impera to get the real maximum brightness of this local group
     barrier();
