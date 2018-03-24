@@ -275,6 +275,8 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, in uint scale, inout vec
 
 vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, const uint uniqueWorkerID, out uint scale)
 {
+    //TODO: Use non-cached importanceMap to generate this data.
+
     uint seed = orbitNumber * totalWorkers + uniqueWorkerID;
     float x = hash1(seed,seed);
     seed = (seed ^ (intHash(orbitNumber+totalWorkers)));
