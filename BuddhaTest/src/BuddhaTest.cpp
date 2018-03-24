@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iomanip>
 #include <algorithm>
+#include <cmath>
 
 void error_callback(int error, const char* description)
 {
@@ -25,6 +26,17 @@ int main(int argc, char * argv[])
     {
         return 2;
     }
+
+
+
+    float imageRangeMinX = -2.0f;
+    float imageRangeMinY = -1.125f;
+    float imageRangeMaxX = 2.0f;
+    float imageRangeMaxY = 1.125f;
+
+
+
+
 
     GLFWwindow* window;
 
@@ -158,9 +170,24 @@ int main(int argc, char * argv[])
     GLint widthUniformComputeHandle = glGetUniformLocation(ComputeShader, "width");
     GLint heightUniformComputeHandle = glGetUniformLocation(ComputeShader, "height");
     GLint iterationsPerDispatchHandle = glGetUniformLocation(ComputeShader, "iterationsPerDispatch");
+    GLint imageRangeComputeHandle = glGetUniformLocation(ComputeShader,"effectiveImageRange");
     glUniform4ui(orbitLengthUniformHandle,settings.orbitLengthRed,settings.orbitLengthGreen,settings.orbitLengthBlue,settings.orbitLengthSkip);
     glUniform1ui(widthUniformComputeHandle, settings.imageWidth);
     glUniform1ui(heightUniformComputeHandle, settings.imageHeight);
+    float effectiveImageRange[4];
+    effectiveImageRange[0] = imageRangeMinX;
+    effectiveImageRange[2] = imageRangeMaxX;
+    if(imageRangeMinY*imageRangeMaxY < 0)
+    {
+        effectiveImageRange[1] = std::max(imageRangeMinY,-imageRangeMaxY);
+        effectiveImageRange[3] = std::max(-imageRangeMinY,imageRangeMaxY);
+    }
+    else
+    {
+        effectiveImageRange[1] = std::min(std::abs(imageRangeMinY),std::abs(imageRangeMaxY));
+        effectiveImageRange[3] = std::max(std::abs(imageRangeMinY),std::abs(imageRangeMaxY));
+    }
+    glUniform4f(imageRangeComputeHandle,effectiveImageRange[0],effectiveImageRange[1],effectiveImageRange[2],effectiveImageRange[3]);
 
     const uint32_t maxOrbitlength = std::max(std::max(settings.orbitLengthBlue,settings.orbitLengthGreen),settings.orbitLengthRed);
     glUniform1ui(totalIterationsUniformHandle, maxOrbitlength);

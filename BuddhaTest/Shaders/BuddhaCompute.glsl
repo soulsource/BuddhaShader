@@ -41,7 +41,7 @@ uniform uvec4 orbitLength;
 uniform uint iterationsPerDispatch;
 uniform uint totalIterations;
 
-uniform vec4 imageRange = vec4(-2.0,-1.125,2.0,1.125);
+uniform vec4 effectiveImageRange = vec4(-2.0,-1.125,2.0,1.125);
 
 /** Data stored in shared memory. Used to reduce register pressure. Read at beginning from buffer (if needed), written back at end. */
 struct workerState
@@ -96,7 +96,7 @@ void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 
 uvec2 getCell(vec2 complex)
 {
-    vec2 uv = clamp(vec2((complex.x-imageRange[0])/(imageRange[2]-imageRange[0]), (complex.y-imageRange[1])/(imageRange[3]-imageRange[1])),vec2(0.0),vec2(1.0));
+    vec2 uv = clamp(vec2((complex.x-effectiveImageRange[0])/(effectiveImageRange[2]-effectiveImageRange[0]), (complex.y-effectiveImageRange[1])/(effectiveImageRange[3]-effectiveImageRange[1])),vec2(0.0),vec2(1.0));
     return uvec2(width * uv.x, height * uv.y);
 }
 
@@ -262,9 +262,9 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, in uint scale, inout vec
             doneIterations = i+1;
             return true; //done.
         }
-        if(lastVal.x > imageRange[0] && lastVal.x < imageRange[2] && lastVal.y > imageRange[1] && lastVal.y < imageRange[3])
+        if(lastVal.x > effectiveImageRange[0] && lastVal.x < effectiveImageRange[2] && abs(lastVal.y) > effectiveImageRange[1] && abs(lastVal.y) < effectiveImageRange[3])
         {
-            addToColorAt(lastVal,scale*uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
+            addToColorAt(vec2(lastVal.x,abs(lastVal.y)),scale*uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
             addToImportanceMap(offset, scale);
         }
     }
@@ -284,7 +284,7 @@ vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, cons
     vec2 random = vec2(x,y);
 
     scale = 1;
-    return vec2(random.x * 4-2,random.y*4-2);
+    return vec2(random.x * 4-2,random.y*2);
 }
 
 void initImportanceMapCache()
