@@ -38,7 +38,7 @@ void addToColorOfCell(uvec2 cell, uvec3 toAdd)
 
 uvec2 getCell(vec2 complex)
 {
-    vec2 uv = clamp(vec2((complex.x+2.5)/3.5, (abs(complex.y))),vec2(0.0),vec2(1.0));
+    vec2 uv = clamp(vec2((complex.x+2.875)/4.025, (abs(complex.y/1.15))),vec2(0.0),vec2(1.0));
     return uvec2(width * uv.x, height * uv.y);
 }
 
@@ -204,7 +204,7 @@ bool drawOrbit(in vec2 offset, in uint totalIterations, inout vec2 lastVal, inou
             doneIterations = i+1;
             return true; //done.
         }
-        if(lastVal.x > -2.5 && lastVal.x < 1.0 && lastVal.y > -1.0 && lastVal.y < 1.0)
+        if(lastVal.x > -2.875 && lastVal.x < 1.15 && lastVal.y > -1.15 && lastVal.y < 1.15)
         {
             addToColorAt(lastVal,uvec3(i < orbitLength.r,i < orbitLength.g,i < orbitLength.b));
         }
@@ -221,7 +221,7 @@ vec2 getCurrentOrbitOffset(const uint orbitNumber, const uint totalWorkers, cons
     seed = (seed ^ (intHash(orbitNumber+totalWorkers)));
     float y = hash1(seed,seed);
     vec2 random = vec2(x,y);
-    return vec2(random.x * 3.5-2.5,random.y*1.55);
+    return vec2(random.x * 4.025-2.875,random.y*1.8);
 }
 
 void main() {
